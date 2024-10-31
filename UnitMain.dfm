@@ -83,6 +83,7 @@ object MainForm: TMainForm
     TabOrder = 1
     TextHint = '(Custom command)'
     OnKeyUp = EditCustomPromptKeyUp
+    ExplicitWidth = 472
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -245,12 +246,5 @@ object MainForm: TMainForm
       Caption = 'Exit'
       OnClick = Exit1Click
     end
-  end
-  object TimerClipboard: TTimer
-    Enabled = False
-    Interval = 100
-    OnTimer = TimerClipboardTimer
-    Left = 30
-    Top = 211
   end
 end

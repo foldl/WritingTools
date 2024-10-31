@@ -132,7 +132,6 @@ type
     GridActions: TGridPanel;
     About1: TMenuItem;
     N1: TMenuItem;
-    TimerClipboard: TTimer;
     Card3: TCard;
     ScrollContainer: TScrollBox;
     Panel3: TPanel;
@@ -150,7 +149,6 @@ type
     procedure About1Click(Sender: TObject);
     procedure EditCustomPromptKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure TimerClipboardTimer(Sender: TObject);
     procedure ButtonClearClick(Sender: TObject);
   private
     FProfile: TWritingProfile;
@@ -161,7 +159,6 @@ type
     FCurLLM: TChatLLM;
     FClipboardBackup: string;
     FChatMode: Boolean;
-    FNextInChain: THandle;
     procedure ActionButtonClick(Sender: TObject);
     procedure LLMChunk(Sender: TObject; S: string);
     procedure LLMStateChanged(Sender: TObject; ABusy: Boolean);
@@ -169,9 +166,6 @@ type
     procedure DoAction(Id: Integer);
     procedure CompleteAction;
     procedure PrepareChat;
-    procedure WMDrawClipboard(var Msg: TMessage); message WM_DRAWCLIPBOARD;
-    procedure WMChangeCBChain(var Msg: TMessage); message WM_CHANGECBCHAIN;
-    procedure HotkeyPP;
     procedure UpdateAIMemo(M: TMemo; L: TArray<string>);
   private
     FAIOutput: TMemo;
@@ -290,7 +284,6 @@ var
   begin
     var S := FProfile.FCustomAction.OriginalPrompt;
     FProfile.FCustomAction.ActionType := FProfile.FCustomAction.OriginalActionType;
-    I := -1;
 
     if Prompt.StartsWith('/') then
     begin
@@ -399,15 +392,11 @@ begin
   end;
 
   LabelStatus.Caption := 'Ready. Press ESC to hide.';
-  FNextInChain := SetClipboardViewer(Handle);
   SendMessage(ActivityIndicator.Handle, PBM_SETBKCOLOR, 0, FProfile.UIConfig.Background.Color2);
-
-  TimerClipboard.Interval := FProfile.HotkeyConfig.Delay3;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  ChangeClipboardChain(Handle, FNextInChain);
   FProfile.UIConfig.Width := Width;
   FProfile.UIConfig.Height := Height;
   FProfile.Free;
@@ -441,21 +430,6 @@ end;
 procedure TMainForm.Hide1Click(Sender: TObject);
 begin
   Visible:= False;
-end;
-
-procedure TMainForm.HotkeyPP;
-begin
-  LabelStatus.Caption := FContext;
-  FOutputAcc := '';
-
-  if FContext = '' then LabelStatus.Caption := '(Empty) Go quick chat.';
-
-  Left := Mouse.CursorPos.X + 5;
-  Top := Mouse.CursorPos.Y + 5;
-
-  Show;
-  SetForegroundWindow(Handle);
-  EditCustomPrompt.SetFocus;
 end;
 
 procedure TMainForm.LLMChunk(Sender: TObject; S: string);
@@ -506,12 +480,6 @@ end;
 procedure TMainForm.Show1Click(Sender: TObject);
 begin
   Show;
-end;
-
-procedure TMainForm.TimerClipboardTimer(Sender: TObject);
-begin
-  HotkeyPP;
-  TimerClipboard.Enabled := False;
 end;
 
 procedure TMainForm.UpdateAIMemo(M: TMemo; L: TArray<string>);
@@ -694,42 +662,40 @@ begin
   end;
 end;
 
-procedure TMainForm.WMChangeCBChain(var Msg: TMessage);
-var
-  Remove, Next: THandle;
-begin
-  Remove := Msg.WParam;
-  Next := Msg.LParam;
-  with Msg do
-  begin
-    if FNextInChain = Remove then
-     FNextInChain := Next
-    else if FNextInChain <> 0 then
-     SendMessage(FNextInChain, WM_ChangeCBChain, Remove, Next)
-  end;
-end;
-
-procedure TMainForm.WMDrawClipboard(var Msg: TMessage);
-begin
-  if TimerClipboard.Enabled then
-  begin
-    TimerClipboard.Enabled := False;
-    FContext := SafeGetClipboard;
-    FContext := Trim(FContext);
-    TimerClipboardTimer(Self);
-  end;
-  if FNextInChain <> 0 then
-    SendMessage(FNextInChain, WM_DrawClipboard, 0, 0)
-end;
 
 procedure TMainForm.WMHotKey(var Msg: TWMHotKey);
+var
+  W1, W2: DWORD;
 begin
   CardPanel.ActiveCardIndex := 0;
   FClipboardBackup := SafeGetClipboard(1);
   FContext := '';
 
+  W1 := GetClipboardSequenceNumber;
+
   SimulateCopy(FProfile.HotkeyConfig);
-  TimerClipboard.Enabled := True;
+
+  Sleep(FProfile.HotkeyConfig.Delay3);
+  W2 := GetClipboardSequenceNumber;
+
+  if W1 <> W2 then
+  begin
+    FContext := Trim(SafeGetClipboard);
+  end;
+
+  if FContext = '' then
+    LabelStatus.Caption := '(Empty) Go quick chat.'
+  else
+    LabelStatus.Caption := FContext;
+
+  FOutputAcc := '';
+
+  Left := Mouse.CursorPos.X + 5;
+  Top := Mouse.CursorPos.Y + 5;
+
+  Show;
+  SetForegroundWindow(Handle);
+  EditCustomPrompt.SetFocus;
 end;
 
 { TWritingProfile }
