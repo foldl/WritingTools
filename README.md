@@ -1,9 +1,6 @@
 # Writing Tools
 
-<video controls>
-<source src="media/demo.mp4" type="video/mp4">
-Your browser does not support the video tag
-</video>
+https://github.com/user-attachments/assets/b05b4102-804f-487b-87cc-eb0c5f0f9255
 
 
 ## 🚀 What is it?

@@ -2,6 +2,7 @@
 /__recovery
 /Win32
 /Win64
+/Release
 *.dproj.local
 *.identcache
 *.dll
