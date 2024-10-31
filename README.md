@@ -59,16 +59,16 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
 
    Copy `profile.json.in` to `profile.json`. Fill in the path of the quantized model file:
 
-   ```json
+   ```js
    {
-      ...
+      //...
       "chatllm": {
          "default": [
             "-m",
             "path of the quantized model file"
          ]
       },
-      ...
+      //...
    }
    ```
 
@@ -96,14 +96,14 @@ Fully customizable through `profile.json`.
 
 Multiple LLMs can be defined and loaded simultaneously. Each is defined as an entry in `chatllm`:
 
-```json
+```js
 {
-   ...
+   //...
    "chatllm": {
       "default": [...],
       "another_one": [...]
    },
-   ...
+   //...
 }
 ```
 
@@ -113,7 +113,7 @@ Multiple LLMs can be defined and loaded simultaneously. Each is defined as an en
 
 _Actions_ are represented to users as a collection of buttons. Each action is defined as a dictionary:
 
-```json
+```js
 {
    "name": "My Action",
    "prompt": "Check this:\n\n{context}",
@@ -156,7 +156,7 @@ users input some custom instruction; the other one is defined under `quick-chat`
 
 Users can change hotkey, title and background. Note: _width_ and _height_ are be saved automatically when resized.
 
-```json
+```js
 {
    "title": "My Writing Tools",
    "hotkey": "win+shift+I",
@@ -168,7 +168,7 @@ Users can change hotkey, title and background. Note: _width_ and _height_ are be
       },
       "height": 422
    },
-   ...
+   //...
 }
 ```
 
@@ -185,7 +185,7 @@ Some vibrant gradients:
 
 These three delays in milliseconds specify how to simulate Ctrl+C and detect clipboard changes.
 
-```json
+```js
 {
    "ui": {
       ...
@@ -195,7 +195,7 @@ These three delays in milliseconds specify how to simulate Ctrl+C and detect cli
          "delay3": 100  // wait for clipboard changed after Ctrl+C
       },
    },
-   ...
+   //...
 }
 ```
 
