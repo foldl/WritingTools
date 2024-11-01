@@ -72,6 +72,8 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
    }
    ```
 
+   `profile.json` shall be encoded in **UTF-8**.
+
 1. Start `WritingTools.exe`;
 
 ### Context-aware Assistance

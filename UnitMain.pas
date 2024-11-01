@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   Data.Bind.Components, Vcl.WinXCtrls, Vcl.ExtCtrls,
-  System.UITypes, CommCtrl,
+  System.UITypes, CommCtrl, System.IOUtils,
   Vcl.Menus, Clipbrd, Vcl.ControlList, Vcl.ComCtrls, GraphUtil, superobject, Generics.Collections,
   LibChatLLM, Vcl.WinXPanels;
 
@@ -327,7 +327,7 @@ begin
   Prompt := Trim(EditCustomPrompt.Text);
   EditCustomPrompt.Text := '';
 
-  if Prompt = '' then Exit;  
+  if Prompt = '' then Exit;
 
   if FContext <> '' then
   begin
@@ -715,11 +715,13 @@ begin
   FActions := TObjectList<TWritingAction>.Create;
   FLLMs := TDictionary<string, TLLMContext>.Create;
   FHotKey := TOSHotkey.Create(AHandle);
-  var O := TSuperObject.ParseFile(AFileName, False);
+
+  var Content := TFile.ReadAllText(FFileName, TEncoding.UTF8);
+  var O := TSuperObject.ParseString(PChar(Content), False);
   FName := O.S['name'];
   FTitle := O.S['title'];
   if FTitle = '' then FTitle := 'Writing Tools';
-  
+
   FHotkey.Hotkey := O.S['hotkey'];
   var LLMs := O.O['chatllm'].AsObject;
   for var S in LLMs do
@@ -802,10 +804,11 @@ end;
 
 procedure TWritingProfile.Save;
 begin
-  var O := TSuperObject.ParseFile(FFileName, False);
+  var Content := TFile.ReadAllText(FFileName, TEncoding.UTF8);
+  var O := TSuperObject.ParseString(PChar(Content), False);
   O.I['ui.width'] := UIConfig.Width;
   O.I['ui.height'] := UIConfig.Height;
-  O.SaveTo(FFileName, True, True);
+  TFile.WriteAllText(FFileName, O.AsJSon(True, True), TEncoding.UTF8);
 end;
 
 { TWritingAction }
@@ -883,7 +886,7 @@ begin
   for var S in L do
   begin
     if Length(S) < 1 then Continue;
-    
+
     var SS := UpperCase(S);
     if SS = 'CTRL' then FModifier := FModifier or MOD_CONTROL
     else if SS = 'ALT' then FModifier := FModifier or MOD_ALT
