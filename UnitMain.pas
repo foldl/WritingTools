@@ -889,7 +889,7 @@ begin
     else if SS = 'ALT' then FModifier := FModifier or MOD_ALT
     else if SS = 'SHIFT' then FModifier := FModifier or MOD_SHIFT
     else if SS = 'WIN' then FModifier := FModifier or MOD_WIN
-    else if ('A' <= SS[1]) and (S[1] <= 'Z') then
+    else if Length(SS) = 1 then
       FKey := Ord(SS[1]);
   end;
 

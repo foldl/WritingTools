@@ -28,8 +28,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
-    ExplicitTop = 257
-    ExplicitWidth = 478
     object Panel1: TPanel
       Left = 0
       Top = 0
@@ -38,7 +36,6 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitWidth = 478
       object LabelStatus: TLabel
         AlignWithMargins = True
         Left = 3
@@ -67,7 +64,6 @@ object MainForm: TMainForm
         Smooth = True
         Style = pbstMarquee
         TabOrder = 0
-        ExplicitWidth = 472
       end
     end
   end
@@ -83,7 +79,6 @@ object MainForm: TMainForm
     TabOrder = 1
     TextHint = '(Custom command)'
     OnKeyUp = EditCustomPromptKeyUp
-    ExplicitWidth = 472
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -92,12 +87,10 @@ object MainForm: TMainForm
     Width = 474
     Height = 230
     Align = alClient
-    ActiveCard = Card3
+    ActiveCard = Card1
     BevelOuter = bvNone
     Caption = 'CardPanel'
     TabOrder = 2
-    ExplicitWidth = 472
-    ExplicitHeight = 222
     object Card1: TCard
       Left = 0
       Top = 0
@@ -123,6 +116,10 @@ object MainForm: TMainForm
             Value = 50.000000000000000000
           end>
         ControlCollection = <>
+        Padding.Left = 15
+        Padding.Top = 5
+        Padding.Right = 15
+        Padding.Bottom = 5
         RowCollection = <
           item
             Value = 50.000000000000000000
@@ -158,8 +155,6 @@ object MainForm: TMainForm
       Caption = 'Card3'
       CardIndex = 2
       TabOrder = 2
-      ExplicitWidth = 472
-      ExplicitHeight = 222
       object ScrollContainer: TScrollBox
         AlignWithMargins = True
         Left = 3
@@ -173,8 +168,6 @@ object MainForm: TMainForm
         BorderStyle = bsNone
         TabOrder = 0
         UseWheelForScrolling = True
-        ExplicitWidth = 466
-        ExplicitHeight = 180
       end
       object Panel3: TPanel
         AlignWithMargins = True
@@ -187,8 +180,6 @@ object MainForm: TMainForm
         Caption = 'Panel1'
         ShowCaption = False
         TabOrder = 1
-        ExplicitTop = 189
-        ExplicitWidth = 466
         object ButtonClear: TButton
           Left = 393
           Top = 0
@@ -198,7 +189,6 @@ object MainForm: TMainForm
           Caption = 'Clear'
           TabOrder = 0
           OnClick = ButtonClearClick
-          ExplicitLeft = 391
         end
       end
     end
