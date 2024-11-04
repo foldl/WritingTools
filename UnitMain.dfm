@@ -28,6 +28,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
+    ExplicitTop = 257
+    ExplicitWidth = 478
     object Panel1: TPanel
       Left = 0
       Top = 0
@@ -36,6 +38,7 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
+      ExplicitWidth = 478
       object LabelStatus: TLabel
         AlignWithMargins = True
         Left = 3
@@ -64,6 +67,7 @@ object MainForm: TMainForm
         Smooth = True
         Style = pbstMarquee
         TabOrder = 0
+        ExplicitWidth = 472
       end
     end
   end
@@ -79,6 +83,7 @@ object MainForm: TMainForm
     TabOrder = 1
     TextHint = '(Custom command)'
     OnKeyUp = EditCustomPromptKeyUp
+    ExplicitWidth = 472
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -91,6 +96,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     Caption = 'CardPanel'
     TabOrder = 2
+    ExplicitWidth = 472
+    ExplicitHeight = 222
     object Card1: TCard
       Left = 0
       Top = 0
@@ -99,6 +106,8 @@ object MainForm: TMainForm
       Caption = 'Card1'
       CardIndex = 0
       TabOrder = 0
+      ExplicitWidth = 472
+      ExplicitHeight = 222
       object GridActions: TGridPanel
         AlignWithMargins = True
         Left = 3
@@ -129,6 +138,8 @@ object MainForm: TMainForm
           end>
         ShowCaption = False
         TabOrder = 0
+        ExplicitWidth = 466
+        ExplicitHeight = 216
       end
     end
     object Card2: TCard

@@ -486,16 +486,10 @@ procedure TMainForm.UpdateAIMemo(M: TMemo; L: TArray<string>);
 begin
   M.Lines.BeginUpdate;
 
-  if M.Lines.Count > Length(L) then
-    M.Lines.Clear;
+  M.Lines.Clear;
 
   for var I := 0 to High(L) do
-  begin
-    if I = M.Lines.Count - 1 then
-      M.Lines[I] := L[I]
-    else if I >= M.Lines.Count then
-      M.Lines.Add(L[I]);
-  end;
+    M.Lines.Add(L[I]);
 
   SendMessage(M.Handle, WM_VSCROLL, SB_BOTTOM, 0);
   M.Lines.EndUpdate;
