@@ -26,6 +26,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
+    ExplicitTop = 257
+    ExplicitWidth = 478
     object Panel1: TPanel
       Left = 0
       Top = 0
@@ -34,6 +36,7 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
+      ExplicitWidth = 478
       object LabelStatus: TLabel
         AlignWithMargins = True
         Left = 3
@@ -62,6 +65,7 @@ object MainForm: TMainForm
         Smooth = True
         Style = pbstMarquee
         TabOrder = 0
+        ExplicitWidth = 472
       end
     end
   end
@@ -77,6 +81,7 @@ object MainForm: TMainForm
     TabOrder = 1
     TextHint = '(Custom command)'
     OnKeyUp = EditCustomPromptKeyUp
+    ExplicitWidth = 472
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -89,6 +94,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     Caption = 'CardPanel'
     TabOrder = 2
+    ExplicitWidth = 472
+    ExplicitHeight = 222
     object Card1: TCard
       Left = 0
       Top = 0
@@ -155,6 +162,8 @@ object MainForm: TMainForm
       Caption = 'Card3'
       CardIndex = 2
       TabOrder = 2
+      ExplicitWidth = 472
+      ExplicitHeight = 222
       object Panel3: TPanel
         AlignWithMargins = True
         Left = 3
@@ -166,6 +175,8 @@ object MainForm: TMainForm
         Caption = 'Panel1'
         ShowCaption = False
         TabOrder = 0
+        ExplicitTop = 189
+        ExplicitWidth = 466
         object ButtonClear: TButton
           Left = 393
           Top = 0
@@ -175,6 +186,7 @@ object MainForm: TMainForm
           Caption = 'Clear'
           TabOrder = 0
           OnClick = ButtonClearClick
+          ExplicitLeft = 391
         end
       end
       object BrowserForChat: TEdgeBrowser
@@ -187,6 +199,8 @@ object MainForm: TMainForm
         AllowSingleSignOnUsingOSPrimaryAccount = False
         TargetCompatibleBrowserVersion = '117.0.2045.28'
         UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
+        ExplicitWidth = 472
+        ExplicitHeight = 186
       end
     end
     object Card4: TCard

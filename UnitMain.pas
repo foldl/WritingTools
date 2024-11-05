@@ -327,6 +327,7 @@ var
   begin
     PrepareChat;
     ChatAddUserInput(Prompt);
+    FOutputAcc := '';
 
     FCurLLM := FProfile.LLM[FProfile.FQuickChatAction];
     if not Assigned(FCurLLM) then
@@ -337,7 +338,6 @@ var
     if not FChatMode then
       FCurLLM.Restart(FProfile.FQuickChatAction.SysPrompt);
 
-    FOutputAcc := '';
     FCurLLM.Chat(Prompt);
     FChatMode := True;
   end;
@@ -370,7 +370,7 @@ var
         FContext := '';
         LabelStatus.Caption := 'Quick chat';
         Delete(Prompt, 1, I);
-        ShowMessage(Prompt);
+        FOutputAcc := '';
         QuickChat;
         Exit;
       end;
