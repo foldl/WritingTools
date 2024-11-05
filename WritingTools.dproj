@@ -143,6 +143,11 @@
         </DCCReference>
         <DCCReference Include="libchatllm.pas"/>
         <DCCReference Include="superobject.pas"/>
+        <DCCReference Include="markdown\MarkdownCommonMark.pas"/>
+        <DCCReference Include="markdown\MarkdownDaringFireball.pas"/>
+        <DCCReference Include="markdown\MarkdownHTMLEntities.pas"/>
+        <DCCReference Include="markdown\MarkdownProcessor.pas"/>
+        <DCCReference Include="markdown\MarkdownUnicodeUtils.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

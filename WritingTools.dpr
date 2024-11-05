@@ -14,7 +14,12 @@ uses
   libchatllm in 'libchatllm.pas',
   Vcl.Themes,
   Vcl.Styles,
-  superobject in 'superobject.pas';
+  superobject in 'superobject.pas',
+  MarkdownCommonMark in 'markdown\MarkdownCommonMark.pas',
+  MarkdownDaringFireball in 'markdown\MarkdownDaringFireball.pas',
+  MarkdownHTMLEntities in 'markdown\MarkdownHTMLEntities.pas',
+  MarkdownProcessor in 'markdown\MarkdownProcessor.pas',
+  MarkdownUnicodeUtils in 'markdown\MarkdownUnicodeUtils.pas';
 
 {$R *.res}
 

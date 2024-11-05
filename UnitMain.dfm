@@ -12,11 +12,9 @@ object MainForm: TMainForm
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
-  KeyPreview = True
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnKeyUp = FormKeyUp
   OnPaint = FormPaint
   TextHeight = 15
   object Panel2: TPanel
@@ -28,8 +26,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
-    ExplicitTop = 257
-    ExplicitWidth = 478
     object Panel1: TPanel
       Left = 0
       Top = 0
@@ -38,7 +34,6 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitWidth = 478
       object LabelStatus: TLabel
         AlignWithMargins = True
         Left = 3
@@ -67,7 +62,6 @@ object MainForm: TMainForm
         Smooth = True
         Style = pbstMarquee
         TabOrder = 0
-        ExplicitWidth = 472
       end
     end
   end
@@ -83,7 +77,6 @@ object MainForm: TMainForm
     TabOrder = 1
     TextHint = '(Custom command)'
     OnKeyUp = EditCustomPromptKeyUp
-    ExplicitWidth = 472
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -92,12 +85,10 @@ object MainForm: TMainForm
     Width = 474
     Height = 230
     Align = alClient
-    ActiveCard = Card1
+    ActiveCard = Card3
     BevelOuter = bvNone
     Caption = 'CardPanel'
     TabOrder = 2
-    ExplicitWidth = 472
-    ExplicitHeight = 222
     object Card1: TCard
       Left = 0
       Top = 0
@@ -106,8 +97,6 @@ object MainForm: TMainForm
       Caption = 'Card1'
       CardIndex = 0
       TabOrder = 0
-      ExplicitWidth = 472
-      ExplicitHeight = 222
       object GridActions: TGridPanel
         AlignWithMargins = True
         Left = 3
@@ -138,8 +127,6 @@ object MainForm: TMainForm
           end>
         ShowCaption = False
         TabOrder = 0
-        ExplicitWidth = 466
-        ExplicitHeight = 216
       end
     end
     object Card2: TCard
@@ -147,7 +134,7 @@ object MainForm: TMainForm
       Top = 0
       Width = 474
       Height = 230
-      Caption = 'Press Ctrl+C to abort'
+      Caption = 'Press Ctrl+B to abort'
       CardIndex = 1
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
@@ -157,6 +144,8 @@ object MainForm: TMainForm
       ParentFont = False
       ShowCaption = True
       TabOrder = 1
+      ExplicitWidth = 472
+      ExplicitHeight = 222
     end
     object Card3: TCard
       Left = 0
@@ -166,20 +155,6 @@ object MainForm: TMainForm
       Caption = 'Card3'
       CardIndex = 2
       TabOrder = 2
-      object ScrollContainer: TScrollBox
-        AlignWithMargins = True
-        Left = 3
-        Top = 3
-        Width = 468
-        Height = 188
-        VertScrollBar.Smooth = True
-        Align = alClient
-        BevelInner = bvNone
-        BevelOuter = bvNone
-        BorderStyle = bsNone
-        TabOrder = 0
-        UseWheelForScrolling = True
-      end
       object Panel3: TPanel
         AlignWithMargins = True
         Left = 3
@@ -190,7 +165,7 @@ object MainForm: TMainForm
         BevelOuter = bvNone
         Caption = 'Panel1'
         ShowCaption = False
-        TabOrder = 1
+        TabOrder = 0
         object ButtonClear: TButton
           Left = 393
           Top = 0
@@ -202,6 +177,17 @@ object MainForm: TMainForm
           OnClick = ButtonClearClick
         end
       end
+      object BrowserForChat: TEdgeBrowser
+        Left = 0
+        Top = 0
+        Width = 474
+        Height = 194
+        Align = alClient
+        TabOrder = 1
+        AllowSingleSignOnUsingOSPrimaryAccount = False
+        TargetCompatibleBrowserVersion = '117.0.2045.28'
+        UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
+      end
     end
     object Card4: TCard
       Left = 0
@@ -211,15 +197,16 @@ object MainForm: TMainForm
       Caption = 'Card4'
       CardIndex = 3
       TabOrder = 3
-      object MemoForShow: TMemo
+      object BrowserForShow: TEdgeBrowser
         Left = 0
         Top = 0
         Width = 474
         Height = 230
         Align = alClient
-        ReadOnly = True
-        ScrollBars = ssVertical
         TabOrder = 0
+        AllowSingleSignOnUsingOSPrimaryAccount = False
+        TargetCompatibleBrowserVersion = '117.0.2045.28'
+        UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
       end
     end
   end
@@ -246,6 +233,20 @@ object MainForm: TMainForm
     object Exit1: TMenuItem
       Caption = 'Exit'
       OnClick = Exit1Click
+    end
+  end
+  object ActionList1: TActionList
+    Left = 35
+    Top = 40
+    object ActionAbortGeneration: TAction
+      Caption = 'ActionAbortGeneration'
+      ShortCut = 16450
+      OnExecute = ActionAbortGenerationExecute
+    end
+    object ActionHide: TAction
+      Caption = 'ActionHide'
+      ShortCut = 27
+      OnExecute = ActionHideExecute
     end
   end
 end

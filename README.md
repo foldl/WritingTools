@@ -1,6 +1,6 @@
 # Writing Tools
 
-https://github.com/user-attachments/assets/b05b4102-804f-487b-87cc-eb0c5f0f9255
+https://github.com/user-attachments/assets/6a530cd7-2953-4a89-ac87-ca3b40e7b07e
 
 
 ## 🚀 What is it?
@@ -23,11 +23,12 @@ Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [De
 >_In the world of AI, a secret lies,</br>Where LLMs run on your very site._</br>
 
 
-- **_Absolute_ privacy**: Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp). LLMs run on your machine.
+- **_Absolute_ privacy**: Based on ChatLLM.cpp. LLMs run on your machine.
 - **System-wide Functionality**: Works instantly in **any application** where you can select text. **Does not overwrite your clipboard**.
-- **Completely free and Open-source**: Purely native, no Python, no Java, no JS. Bloat-free & uses pretty much **0% of your CPU**.
+- **Completely free and Open-source**: Purely native. Bloat-free & uses pretty much **0% of your CPU**.
 - **Chat Mode**: Seamlessly switching between context processing mode and chat mode.
 - **Customization**: All commands are fully customizable.
+- **Markdown Rendering**: Beautiful and elegant.
 
 ## ✨ Features
 
@@ -185,21 +186,29 @@ Some vibrant gradients:
 
 ### Troubleshooting (Fine Tuning)
 
-These three delays in milliseconds specify how to simulate Ctrl+C and detect clipboard changes.
+1. Clipboard not working?
 
-```js
-{
-   "ui": {
-      ...
-      "hotkey": {
-         "delay1": 200, // before simulating Ctrl+C
-         "delay2": 40,  // between key inputs within Ctrl+C
-         "delay3": 100  // wait for clipboard changed after Ctrl+C
+   These three delays in milliseconds specify how to simulate Ctrl+C and detect clipboard changes.
+
+   ```js
+   {
+      "ui": {
+         ...
+         "hotkey": {
+            "delay1": 200, // before simulating Ctrl+C
+            "delay2": 40,  // between key inputs within Ctrl+C
+            "delay3": 100  // wait for clipboard changed after Ctrl+C
+         },
       },
-   },
-   //...
-}
-```
+      //...
+   }
+   ```
+
+1. App can't load?
+
+   WebView2 runtime is required, which preinstalled onto all Windows 11 and most of Windows 10. If problems are encountered,
+   check the [document](https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH) and install it.
+   [Link](https://go.microsoft.com/fwlink/p/?LinkId=2124703)
 
 ### Auto Run
 
@@ -212,12 +221,14 @@ Add a shortcut of the `WritingTools.exe` to the Windows Start-Up folder.
 1. Build this project with Delphi (Target: Win64);
 1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _Win64/Debug_).
 
-## Acknowledgement
+## 👏‍ Acknowledgement & Third Party Libraries
 
 * This project is inspired by another [WritingTools](https://github.com/theJayTea/WritingTools).
    Let's keep things simple, with Delphi.
 
 * [Super Object Toolkit](https://github.com/hgourvest/superobject)
+
+* [Markdown Processor](https://github.com/grahamegrieve/delphi-markdown)
 
 ## 📄 License
 

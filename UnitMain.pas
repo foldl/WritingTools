@@ -6,9 +6,11 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   Data.Bind.Components, Vcl.WinXCtrls, Vcl.ExtCtrls,
-  System.UITypes, CommCtrl, System.IOUtils,
+  System.UITypes, CommCtrl, System.IOUtils, System.Generics.Collections,
+  System.NetEncoding,
   Vcl.Menus, Clipbrd, Vcl.ControlList, Vcl.ComCtrls, GraphUtil, superobject, Generics.Collections,
-  LibChatLLM, Vcl.WinXPanels;
+  LibChatLLM, Vcl.WinXPanels, Winapi.WebView2, Winapi.ActiveX, Vcl.Edge,
+  MarkdownProcessor, System.Actions, Vcl.ActnList;
 
 type
   TWritingActionType = (watPrepend, watReplace, watAppend, watShow, watClipboard);
@@ -117,6 +119,40 @@ type
 
   end;
 
+  TCallJs = record
+    ParamNum: Integer;
+    FunName: string;
+    Param: string;
+  end;
+
+  TEdgeBrowserUpdater = class(TComponent)
+  private
+    FView: TEdgeBrowser;
+    FFifo: TQueue<TCallJs>;
+    FTimer: TTimer;
+    FHtml: string;
+    FHtmlPending: Boolean;
+    procedure BrowserNavCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
+    procedure ScriptExecuted(Sender: TCustomEdgeBrowser; AResult: HResult; const AResultObjectAsJson: string);
+    procedure SetBrowser(const Value: TEdgeBrowser; InitialURL: string = 'about:blank');
+    procedure DoCall;
+    procedure CallJS(FunName, Param: string); overload;
+    procedure CallJS(FunName: string); overload;
+    procedure TimerTimer(Sender: TObject);
+    function GetBusy: Boolean;
+  public
+    constructor Create(AOwner: TComponent; View: TEdgeBrowser; InitialURL: string = 'about:blank');
+
+    procedure ClearContentAll;
+    procedure SetContentAll(Content: string);
+
+    procedure SetPage(const html: string);
+
+    destructor Destroy; override;
+    property Browser: TEdgeBrowser read FView;
+    property Busy: Boolean read GetBusy;
+  end;
+
   TMainForm = class(TForm)
     TrayIcon1: TTrayIcon;
     Panel2: TPanel;
@@ -133,23 +169,27 @@ type
     About1: TMenuItem;
     N1: TMenuItem;
     Card3: TCard;
-    ScrollContainer: TScrollBox;
     Panel3: TPanel;
     ButtonClear: TButton;
     Card4: TCard;
-    MemoForShow: TMemo;
     ActivityIndicator: TProgressBar;
+    BrowserForShow: TEdgeBrowser;
+    ActionList1: TActionList;
+    ActionAbortGeneration: TAction;
+    ActionHide: TAction;
+    BrowserForChat: TEdgeBrowser;
     procedure Exit1Click(Sender: TObject);
     procedure Hide1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormPaint(Sender: TObject);
-    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure Show1Click(Sender: TObject);
     procedure About1Click(Sender: TObject);
     procedure EditCustomPromptKeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure ButtonClearClick(Sender: TObject);
+    procedure ActionAbortGenerationExecute(Sender: TObject);
+    procedure ActionHideExecute(Sender: TObject);
   private
     FProfile: TWritingProfile;
     FContext: string;
@@ -159,6 +199,11 @@ type
     FCurLLM: TChatLLM;
     FClipboardBackup: string;
     FChatMode: Boolean;
+    FMdProcessor: TMarkdownProcessor;
+    FTemplate1: string;
+    FTemplate2: string;
+    FUpdaterShow: TEdgeBrowserUpdater;
+    FUpdaterChat: TEdgeBrowserUpdater;
     procedure ActionButtonClick(Sender: TObject);
     procedure LLMChunk(Sender: TObject; S: string);
     procedure LLMStateChanged(Sender: TObject; ABusy: Boolean);
@@ -166,12 +211,14 @@ type
     procedure DoAction(Id: Integer);
     procedure CompleteAction;
     procedure PrepareChat;
-    procedure UpdateAIMemo(M: TMemo; L: TArray<string>);
+    procedure UpdateAIMemo(Updater: TEdgeBrowserUpdater; L: string); overload;
   private
-    FAIOutput: TMemo;
-    procedure ChatAddRole(Role: string);
+    FChatHistory: string;
+    function FormatAIOutput(const S: string): string;
+    function FormatUserInput(const S: string): string;
     procedure ChatAddUserInput(S: string);
-    procedure ChatUpdateAIOutput;
+    procedure ShowChat;
+    procedure SaveBotOutput;
   public
   end;
 
@@ -217,7 +264,13 @@ end;
 
 procedure TMainForm.About1Click(Sender: TObject);
 begin
-  MessageDlg('Writing Tools v1.0'#10#10'Written in Delphi. Powered by ChatLLM.cpp', TMsgDlgType.mtInformation, [mbOK], -1);
+  MessageDlg('Writing Tools v1.1'#10#10'Written in Delphi. Powered by ChatLLM.cpp', TMsgDlgType.mtInformation, [mbOK], -1);
+end;
+
+procedure TMainForm.ActionAbortGenerationExecute(Sender: TObject);
+begin
+  if Assigned(FCurLLM) then
+    FCurLLM.AbortGeneration;
 end;
 
 procedure TMainForm.ActionButtonClick(Sender: TObject);
@@ -227,15 +280,24 @@ begin
   DoAction((Sender as TButton).Tag);
 end;
 
+procedure TMainForm.ActionHideExecute(Sender: TObject);
+begin
+  Hide;
+end;
+
 procedure TMainForm.ButtonClearClick(Sender: TObject);
 begin
-  ScrollContainer.DestroyComponents;
+  FChatHistory := '';
+  FOutputAcc   := '';
+  ShowChat;
 end;
 
 procedure TMainForm.DoAction(Id: Integer);
 begin
   FChatMode := False;
   if FContext = '' then Exit;
+
+  FOutputAcc := '';
 
   FCurAction := FProfile.Action[Id];
   FCurLLM := FProfile.LLM[FCurAction];
@@ -246,7 +308,8 @@ begin
   end;
   if FCurAction.ActionType = watShow then
   begin
-    MemoForShow.Clear;
+    //FUpdaterShow.CallJS('clearContentAll', '');
+    FUpdaterShow.SetPage('<html></html>');
     CardPanel.ActiveCardIndex := CARD_SHOW;
   end;
   FCurLLM.Restart(FCurAction.SysPrompt);
@@ -273,6 +336,8 @@ var
     end;
     if not FChatMode then
       FCurLLM.Restart(FProfile.FQuickChatAction.SysPrompt);
+
+    FOutputAcc := '';
     FCurLLM.Chat(Prompt);
     FChatMode := True;
   end;
@@ -305,6 +370,7 @@ var
         FContext := '';
         LabelStatus.Caption := 'Quick chat';
         Delete(Prompt, 1, I);
+        ShowMessage(Prompt);
         QuickChat;
         Exit;
       end;
@@ -343,11 +409,56 @@ begin
   Close;
 end;
 
+function TMainForm.FormatAIOutput(const S: string): string;
+begin
+  if S = '' then Exit('');
+
+  Result := Format('''
+<div class="message_container message_bot">
+  <div class="avatar_container avatar_bot"><div class="avatar_icon_bot"></div></div>
+  <div class="message">%s</div>
+</div>
+''', [FMdProcessor.Process(S)]);
+end;
+
+function TMainForm.FormatUserInput(const S: string): string;
+begin
+  if S = '' then Exit('');
+  
+  Result := Format('''
+<div class="message_container message_user">
+  <div class="avatar_container avatar_user"><div class="avatar_icon_user"></div></div>
+  <div class="message">%s</div>
+</div>
+''', [FMdProcessor.Process(S)]);
+end;
+
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  var P := ExtractFilePath(Application.ExeName);
+  if FileExists(P + 'data/p1.html') then
+  begin
+    FTemplate1 := TFile.ReadAllText(P + 'data/p1.html');
+    FTemplate2 := TFile.ReadAllText(P + 'data/p2.html');
+  end
+  else begin
+    FTemplate1 := TFile.ReadAllText(P + '../../data/p1.html');
+    FTemplate2 := TFile.ReadAllText(P + '../../data/p2.html');
+  end;
+  FMdProcessor := TMarkdownProcessor.CreateDialect(mdCommonMark);
+
+  FUpdaterShow := TEdgeBrowserUpdater.Create(Self, BrowserForShow);
+  FUpdaterChat := TEdgeBrowserUpdater.Create(Self, BrowserForChat);
+
   CardPanel.ActiveCardIndex := CARD_MAIN;
 
-  var FN := ExtractFilePath(Application.ExeName) + 'profile.json';
+  var FN := P + 'profile.json';
+  if not FileExists(FN) then
+  begin
+    MessageDlg(Format('profile.json not found under path: %s', [FN]), TMsgDlgType.mtError, [mbOK], -1);
+    Application.Terminate;
+    Exit;
+  end;
   if ParamCount() > 1 then FN := ParamStr(1);
   FProfile := TWritingProfile.Create(Handle, FN);
   Width := FProfile.UIConfig.Width;
@@ -397,24 +508,10 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
+  FMdProcessor.Free;
   FProfile.UIConfig.Width := Width;
   FProfile.UIConfig.Height := Height;
   FProfile.Free;
-end;
-
-procedure TMainForm.FormKeyUp(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  if Key = VK_ESCAPE then
-  begin
-    Visible := False;
-    Exit;
-  end;
-  if ActivityIndicator.Visible and (ssCtrl in Shift) and (Key = Ord('C')) then
-  begin
-    if Assigned(FCurLLM) then
-      FCurLLM.AbortGeneration;
-  end;
 end;
 
 procedure TMainForm.FormPaint(Sender: TObject);
@@ -439,13 +536,13 @@ begin
 
   if FChatMode then
   begin
-    ChatUpdateAIOutput;
+    ShowChat;
     Exit;
   end;
 
   if Assigned(FCurAction) and (FCurAction.ActionType = watShow) then
   begin
-    UpdateAIMemo(MemoForShow, FOutputLinesAcc);
+    UpdateAIMemo(FUpdaterShow, FOutputAcc);
     Exit;
   end;
 
@@ -477,22 +574,27 @@ begin
   CardPanel.ActiveCardIndex := CARD_CHAT;
 end;
 
+procedure TMainForm.SaveBotOutput;
+begin
+  if Length(FOutputAcc) < 1 then Exit;
+  
+  FChatHistory := FChatHistory + FormatAIOutput(FOutputAcc);
+end;
+
 procedure TMainForm.Show1Click(Sender: TObject);
 begin
   Show;
 end;
 
-procedure TMainForm.UpdateAIMemo(M: TMemo; L: TArray<string>);
+procedure TMainForm.ShowChat;
 begin
-  M.Lines.BeginUpdate;
+  FUpdaterChat.SetPage(FTemplate1 + FChatHistory + FormatAIOutput(FOutputAcc) + FTemplate2);
+end;
 
-  M.Lines.Clear;
-
-  for var I := 0 to High(L) do
-    M.Lines.Add(L[I]);
-
-  SendMessage(M.Handle, WM_VSCROLL, SB_BOTTOM, 0);
-  M.Lines.EndUpdate;
+procedure TMainForm.UpdateAIMemo(Updater: TEdgeBrowserUpdater; L: string);
+begin
+  var html := FMdProcessor.process(L);
+  Updater.SetPage(FTemplate1 + html + FTemplate2);
 end;
 
 function SendKeyEvent(Vk: Word; Up: Boolean; Delay: Integer = 100): Integer;
@@ -554,52 +656,11 @@ begin
   SendKeyEvent(VK_RETURN, True, KeyConfig.Delay2);
 end;
 
-procedure TMainForm.ChatUpdateAIOutput;
-begin
-  if not Assigned(FAIOutput) then
-  begin
-    ChatAddRole('AI');
-    FAIOutput := TMemo.Create(ScrollContainer);
-    with FAIOutput do
-    begin
-      Text := '';
-      Parent := ScrollContainer;
-      ReadOnly := True;
-      Align := alBottom;
-      Align := alTop;
-      ScrollBars := ssVertical;
-    end;
-    ScrollContainer.ScrollInView(FAIOutput);
-  end;
-
-  UpdateAIMemo(FAIOutput, FOutputLinesAcc);
-end;
-
-procedure TMainForm.ChatAddRole(Role: string);
-begin
-  var L := TLabel.Create(ScrollContainer);
-  L.Caption := Role;
-  L.Font.Style := [fsBold];
-  L.Parent := ScrollContainer;
-  L.Align := alBottom;
-  L.Align := alTop;
-end;
-
 procedure TMainForm.ChatAddUserInput(S: string);
 begin
-  FAIOutput := nil;
-  FOutputAcc := '';
-
-  ChatAddRole('You');
-
-  var M := TEdit.Create(ScrollContainer);
-  M.Text := S;
-  M.Parent := ScrollContainer;
-  M.ReadOnly := True;
-  M.Align := alBottom;
-  M.Align := alTop;
-
-  ScrollContainer.ScrollInView(M);
+  SaveBotOutput;
+  FChatHistory := FChatHistory + FormatUserInput(S);
+  ShowChat;
 end;
 
 procedure TMainForm.CompleteAction;
@@ -656,11 +717,11 @@ begin
   end;
 end;
 
-
 procedure TMainForm.WMHotKey(var Msg: TWMHotKey);
 var
   W1, W2: DWORD;
 begin
+  EditCustomPrompt.Text := '';
   CardPanel.ActiveCardIndex := 0;
   FClipboardBackup := SafeGetClipboard(1);
   FContext := '';
@@ -920,6 +981,140 @@ begin
     MessageDlg(Format('Failed to load LLM using params: %s', [Params.Text]), TMsgDlgType.mtError, [mbOK], -1);
     Application.Terminate;
   end;
+end;
+
+{ TEdgeBrowserUpdater }
+
+procedure TEdgeBrowserUpdater.CallJS(FunName, Param: string);
+var
+  Call: TCallJs;
+begin
+  Call.ParamNum := 1;
+  Call.FunName := FunName;
+  Call.Param   := TNetEncoding.Base64.Encode(Param);
+  FFifo.Enqueue(Call);
+  DoCall;
+end;
+
+procedure TEdgeBrowserUpdater.CallJS(FunName: string);
+var
+  Call: TCallJs;
+begin
+  Call.ParamNum := 0;
+  Call.FunName := FunName;
+  FFifo.Enqueue(Call);
+  DoCall;
+end;
+
+procedure TEdgeBrowserUpdater.ClearContentAll;
+begin
+  CallJS('clearContentAll');
+end;
+
+constructor TEdgeBrowserUpdater.Create(AOwner: TComponent; View: TEdgeBrowser; InitialURL: string);
+begin
+  inherited Create(AOwner);
+  FTimer := TTimer.Create(Self);
+  FTimer.Enabled := False;
+  FTimer.Interval := 1;
+  FTimer.OnTimer := TimerTimer;
+  FFifo := TQueue<TCallJs>.Create;
+  SetBrowser(View, InitialURL);
+end;
+
+destructor TEdgeBrowserUpdater.Destroy;
+begin
+  FFifo.Free;
+  inherited;
+end;
+
+procedure TEdgeBrowserUpdater.DoCall;
+var
+  S: string;
+begin
+  if Busy then Exit;
+  if FFifo.IsEmpty then Exit;
+
+  var call := FFifo.Dequeue;
+
+  case call.ParamNum of
+    -1: begin
+      FView.OnNavigationCompleted := BrowserNavCompleted;
+      FView.NavigateToString(call.Param);
+    end;
+    0: begin
+      S := Format('%s();', [call.FunName]);
+      FView.OnExecuteScript := ScriptExecuted;
+      FView.ExecuteScript(S);
+    end;
+    1: begin
+      S := Format('%s("%s");', [call.FunName, call.Param]);
+      FView.OnExecuteScript := ScriptExecuted;
+      FView.ExecuteScript(S);
+    end
+  end;
+
+end;
+
+function TEdgeBrowserUpdater.GetBusy: Boolean;
+begin
+  Result := Assigned(FView.OnExecuteScript) or Assigned(FView.OnNavigationCompleted);
+end;
+
+procedure TEdgeBrowserUpdater.BrowserNavCompleted(Sender: TCustomEdgeBrowser;
+  IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
+begin
+  FView.OnNavigationCompleted := nil;
+
+  if FHtmlPending then
+  begin
+    FHtmlPending := False;
+    FView.OnNavigationCompleted := BrowserNavCompleted;
+    FView.NavigateToString(FHtml);
+    Exit;
+  end;
+
+  FTimer.Enabled := True;
+end;
+
+procedure TEdgeBrowserUpdater.ScriptExecuted(Sender: TCustomEdgeBrowser;
+  AResult: HResult; const AResultObjectAsJson: string);
+begin
+  FView.OnExecuteScript := nil;
+  FTimer.Enabled := True;
+end;
+
+procedure TEdgeBrowserUpdater.SetBrowser(const Value: TEdgeBrowser; InitialURL: string);
+begin
+  FView := Value;
+  if not Assigned(FView) then Exit;
+
+  FView.OnNavigationCompleted := BrowserNavCompleted;
+  FView.Navigate(InitialURL);
+end;
+
+procedure TEdgeBrowserUpdater.SetContentAll(Content: string);
+begin
+  CallJS('setContentAll', Content);
+end;
+
+procedure TEdgeBrowserUpdater.SetPage(const html: string);
+begin
+  if Assigned(FView.OnNavigationCompleted) then
+  begin
+    FHtmlPending := True;
+    FHtml := html;
+    Exit;
+  end;
+
+  FView.OnNavigationCompleted := BrowserNavCompleted;
+  FView.NavigateToString(html);
+end;
+
+procedure TEdgeBrowserUpdater.TimerTimer(Sender: TObject);
+begin
+  FTimer.Enabled := False;
+  DoCall;
 end;
 
 end.
