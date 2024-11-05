@@ -169,8 +169,6 @@ type
     About1: TMenuItem;
     N1: TMenuItem;
     Card3: TCard;
-    Panel3: TPanel;
-    ButtonClear: TButton;
     Card4: TCard;
     ActivityIndicator: TProgressBar;
     BrowserForShow: TEdgeBrowser;
@@ -178,6 +176,7 @@ type
     ActionAbortGeneration: TAction;
     ActionHide: TAction;
     BrowserForChat: TEdgeBrowser;
+    ButtonClear: TButton;
     procedure Exit1Click(Sender: TObject);
     procedure Hide1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -282,6 +281,7 @@ end;
 
 procedure TMainForm.ActionHideExecute(Sender: TObject);
 begin
+  FUpdaterShow.SetPage('<html></html>');
   Hide;
 end;
 
@@ -294,6 +294,7 @@ end;
 
 procedure TMainForm.DoAction(Id: Integer);
 begin
+¡¡ButtonClear.Visible := False;
   FChatMode := False;
   if FContext = '' then Exit;
 
@@ -338,8 +339,8 @@ var
     if not FChatMode then
       FCurLLM.Restart(FProfile.FQuickChatAction.SysPrompt);
 
-    FCurLLM.Chat(Prompt);
     FChatMode := True;
+    FCurLLM.Chat(Prompt);
   end;
 
   procedure CustomAction;
@@ -565,13 +566,21 @@ begin
     FCurAction := nil;
   end;
 
-  if (not ABusy) and FChatMode then
-    EditCustomPrompt.SetFocus;
+  if FChatMode then
+  begin
+    ButtonClear.Visible := not ABusy;
+    if not ABusy then
+    begin
+      SaveBotOutput;
+      EditCustomPrompt.SetFocus;
+    end;
+  end;
 end;
 
 procedure TMainForm.PrepareChat;
 begin
   CardPanel.ActiveCardIndex := CARD_CHAT;
+  ButtonClear.Visible := True;
 end;
 
 procedure TMainForm.SaveBotOutput;
@@ -658,7 +667,6 @@ end;
 
 procedure TMainForm.ChatAddUserInput(S: string);
 begin
-  SaveBotOutput;
   FChatHistory := FChatHistory + FormatUserInput(S);
   ShowChat;
 end;
@@ -723,6 +731,7 @@ var
 begin
   EditCustomPrompt.Text := '';
   CardPanel.ActiveCardIndex := 0;
+  ButtonClear.Visible := False;
   FClipboardBackup := SafeGetClipboard(1);
   FContext := '';
 

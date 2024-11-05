@@ -41,7 +41,7 @@ object MainForm: TMainForm
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 474
+        Width = 393
         Height = 21
         Align = alClient
         Caption = 'LabelStatus'
@@ -66,6 +66,21 @@ object MainForm: TMainForm
         Style = pbstMarquee
         TabOrder = 0
         ExplicitWidth = 472
+      end
+      object ButtonClear: TButton
+        AlignWithMargins = True
+        Left = 402
+        Top = 3
+        Width = 75
+        Height = 21
+        Align = alRight
+        Caption = 'Clear'
+        TabOrder = 1
+        Visible = False
+        OnClick = ButtonClearClick
+        ExplicitLeft = 391
+        ExplicitTop = 0
+        ExplicitHeight = 30
       end
     end
   end
@@ -151,8 +166,6 @@ object MainForm: TMainForm
       ParentFont = False
       ShowCaption = True
       TabOrder = 1
-      ExplicitWidth = 472
-      ExplicitHeight = 222
     end
     object Card3: TCard
       Left = 0
@@ -164,38 +177,13 @@ object MainForm: TMainForm
       TabOrder = 2
       ExplicitWidth = 472
       ExplicitHeight = 222
-      object Panel3: TPanel
-        AlignWithMargins = True
-        Left = 3
-        Top = 197
-        Width = 468
-        Height = 30
-        Align = alBottom
-        BevelOuter = bvNone
-        Caption = 'Panel1'
-        ShowCaption = False
-        TabOrder = 0
-        ExplicitTop = 189
-        ExplicitWidth = 466
-        object ButtonClear: TButton
-          Left = 393
-          Top = 0
-          Width = 75
-          Height = 30
-          Align = alRight
-          Caption = 'Clear'
-          TabOrder = 0
-          OnClick = ButtonClearClick
-          ExplicitLeft = 391
-        end
-      end
       object BrowserForChat: TEdgeBrowser
         Left = 0
         Top = 0
         Width = 474
-        Height = 194
+        Height = 230
         Align = alClient
-        TabOrder = 1
+        TabOrder = 0
         AllowSingleSignOnUsingOSPrimaryAccount = False
         TargetCompatibleBrowserVersion = '117.0.2045.28'
         UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
