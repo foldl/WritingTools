@@ -7,6 +7,7 @@ object MainForm: TMainForm
   ClientWidth = 480
   Color = clBtnFace
   TransparentColorValue = clBtnFace
+  Enabled = False
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -12
@@ -38,8 +39,8 @@ object MainForm: TMainForm
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 60
-        Height = 15
+        Width = 393
+        Height = 21
         Align = alClient
         Caption = 'LabelStatus'
         Enabled = False
@@ -49,6 +50,8 @@ object MainForm: TMainForm
         Font.Name = 'Segoe UI'
         Font.Style = []
         ParentFont = False
+        ExplicitWidth = 60
+        ExplicitHeight = 15
       end
       object ActivityIndicator: TProgressBar
         AlignWithMargins = True

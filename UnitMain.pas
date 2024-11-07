@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   Data.Bind.Components, Vcl.WinXCtrls, Vcl.ExtCtrls,
-  System.UITypes, CommCtrl, System.IOUtils, System.Generics.Collections,
+  System.UITypes, CommCtrl, System.IOUtils, System.Generics.Collections, System.Threading,
   System.NetEncoding,
   Vcl.Menus, Clipbrd, Vcl.ControlList, Vcl.ComCtrls, GraphUtil, superobject, Generics.Collections,
   LibChatLLM, Vcl.WinXPanels, Winapi.WebView2, Winapi.ActiveX, Vcl.Edge,
@@ -491,18 +491,29 @@ begin
   end;
 
   LabelStatus.Caption := 'loading LLMs';
-  FProfile.LoadLLM(LLMChunk, LLMStateChanged);
-  ActivityIndicator.Visible := False;
-  FProfile.FHotkey.Enabled := True;
-  if not FProfile.FHotkey.Enabled then
-  begin
-    MessageDlg(Format('Failed to register hotkey: %s', [FProfile.FHotkey.Hotkey]), TMsgDlgType.mtError, [mbOK], -1);
-    Application.Terminate;
-    Exit;
-  end;
 
-  LabelStatus.Caption := 'Ready. Press ESC to hide.';
-  SendMessage(ActivityIndicator.Handle, PBM_SETBKCOLOR, 0, FProfile.UIConfig.Background.Color2);
+  var T := TTask.Create(
+    procedure
+    begin
+      FProfile.LoadLLM(LLMChunk, LLMStateChanged);
+      TThread.Synchronize(TThread.Current,
+        procedure
+        begin
+          Enabled := True;
+          ActivityIndicator.Visible := False;
+          FProfile.FHotkey.Enabled := True;
+          if not FProfile.FHotkey.Enabled then
+          begin
+            MessageDlg(Format('Failed to register hotkey: %s', [FProfile.FHotkey.Hotkey]), TMsgDlgType.mtError, [mbOK], -1);
+            Application.Terminate;
+            Exit;
+          end;
+
+          LabelStatus.Caption := 'Ready. Press ESC to hide.';
+          SendMessage(ActivityIndicator.Handle, PBM_SETBKCOLOR, 0, FProfile.UIConfig.Background.Color2);
+        end);
+    end);
+  T.Start;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
