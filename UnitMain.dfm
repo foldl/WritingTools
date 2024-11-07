@@ -26,8 +26,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
-    ExplicitTop = 257
-    ExplicitWidth = 478
     object Panel1: TPanel
       Left = 0
       Top = 0
@@ -36,13 +34,12 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitWidth = 478
       object LabelStatus: TLabel
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 393
-        Height = 21
+        Width = 60
+        Height = 15
         Align = alClient
         Caption = 'LabelStatus'
         Enabled = False
@@ -52,8 +49,6 @@ object MainForm: TMainForm
         Font.Name = 'Segoe UI'
         Font.Style = []
         ParentFont = False
-        ExplicitWidth = 60
-        ExplicitHeight = 15
       end
       object ActivityIndicator: TProgressBar
         AlignWithMargins = True
@@ -65,7 +60,6 @@ object MainForm: TMainForm
         Smooth = True
         Style = pbstMarquee
         TabOrder = 0
-        ExplicitWidth = 472
       end
       object ButtonClear: TButton
         AlignWithMargins = True
@@ -78,9 +72,6 @@ object MainForm: TMainForm
         TabOrder = 1
         Visible = False
         OnClick = ButtonClearClick
-        ExplicitLeft = 391
-        ExplicitTop = 0
-        ExplicitHeight = 30
       end
     end
   end
@@ -95,8 +86,7 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     TabOrder = 1
     TextHint = '(Custom command)'
-    OnKeyUp = EditCustomPromptKeyUp
-    ExplicitWidth = 472
+    OnKeyPress = EditCustomPromptKeyPress
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -109,8 +99,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     Caption = 'CardPanel'
     TabOrder = 2
-    ExplicitWidth = 472
-    ExplicitHeight = 222
     object Card1: TCard
       Left = 0
       Top = 0
@@ -175,8 +163,6 @@ object MainForm: TMainForm
       Caption = 'Card3'
       CardIndex = 2
       TabOrder = 2
-      ExplicitWidth = 472
-      ExplicitHeight = 222
       object BrowserForChat: TEdgeBrowser
         Left = 0
         Top = 0
@@ -187,8 +173,6 @@ object MainForm: TMainForm
         AllowSingleSignOnUsingOSPrimaryAccount = False
         TargetCompatibleBrowserVersion = '117.0.2045.28'
         UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
-        ExplicitWidth = 472
-        ExplicitHeight = 186
       end
     end
     object Card4: TCard

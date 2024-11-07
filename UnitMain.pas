@@ -141,7 +141,7 @@ type
     procedure TimerTimer(Sender: TObject);
     function GetBusy: Boolean;
   public
-    constructor Create(AOwner: TComponent; View: TEdgeBrowser; InitialURL: string = 'about:blank');
+    constructor Create(AOwner: TComponent; View: TEdgeBrowser; InitialURL: string = 'about:blank'); reintroduce; overload;
 
     procedure ClearContentAll;
     procedure SetContentAll(Content: string);
@@ -184,11 +184,10 @@ type
     procedure FormPaint(Sender: TObject);
     procedure Show1Click(Sender: TObject);
     procedure About1Click(Sender: TObject);
-    procedure EditCustomPromptKeyUp(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
     procedure ButtonClearClick(Sender: TObject);
     procedure ActionAbortGenerationExecute(Sender: TObject);
     procedure ActionHideExecute(Sender: TObject);
+    procedure EditCustomPromptKeyPress(Sender: TObject; var Key: Char);
   private
     FProfile: TWritingProfile;
     FContext: string;
@@ -319,8 +318,7 @@ begin
   FCurLLM.Chat(S);
 end;
 
-procedure TMainForm.EditCustomPromptKeyUp(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
+procedure TMainForm.EditCustomPromptKeyPress(Sender: TObject; var Key: Char);
 var
   Prompt: string;
 
@@ -389,7 +387,7 @@ var
   end;
 
 begin
-  if Key <> VK_RETURN then Exit;
+  if Ord(Key) <> VK_RETURN then Exit;
 
   Prompt := Trim(EditCustomPrompt.Text);
   EditCustomPrompt.Text := '';

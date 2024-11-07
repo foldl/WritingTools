@@ -206,7 +206,7 @@ Some vibrant gradients:
 
 1. App can't load?
 
-   WebView2 runtime is required, which preinstalled onto all Windows 11 and most of Windows 10. If problems are encountered,
+   WebView2 runtime is required, which is preinstalled onto all Windows 11 and most of Windows 10. If problems are encountered,
    check the [document](https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH) and install it.
    [Link](https://go.microsoft.com/fwlink/p/?LinkId=2124703)
 
@@ -221,14 +221,16 @@ Add a shortcut of the `WritingTools.exe` to the Windows Start-Up folder.
 1. Build this project with Delphi (Target: Win64);
 1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _Win64/Debug_).
 
-## 👏‍ Acknowledgement & Third Party Libraries
+# 👏‍ Acknowledgements
 
 * This project is inspired by another [WritingTools](https://github.com/theJayTea/WritingTools).
    Let's keep things simple, with Delphi.
 
-* [Super Object Toolkit](https://github.com/hgourvest/superobject)
+* [Super Object Toolkit](https://github.com/hgourvest/superobject) for JSON manipulation.
 
-* [Markdown Processor](https://github.com/grahamegrieve/delphi-markdown)
+* [Markdown Processor](https://github.com/grahamegrieve/delphi-markdown) for Markdown rendering.
+
+* [Prism](https://prismjs.com) for code highlighting.
 
 ## 📄 License
 
