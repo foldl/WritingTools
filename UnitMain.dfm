@@ -27,6 +27,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ShowCaption = False
     TabOrder = 0
+    ExplicitTop = 257
+    ExplicitWidth = 478
     object Panel1: TPanel
       Left = 0
       Top = 0
@@ -35,6 +37,7 @@ object MainForm: TMainForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
+      ExplicitWidth = 478
       object LabelStatus: TLabel
         AlignWithMargins = True
         Left = 3
@@ -63,6 +66,7 @@ object MainForm: TMainForm
         Smooth = True
         Style = pbstMarquee
         TabOrder = 0
+        ExplicitWidth = 472
       end
       object ButtonClear: TButton
         AlignWithMargins = True
@@ -75,6 +79,7 @@ object MainForm: TMainForm
         TabOrder = 1
         Visible = False
         OnClick = ButtonClearClick
+        ExplicitLeft = 400
       end
     end
   end
@@ -90,6 +95,7 @@ object MainForm: TMainForm
     TabOrder = 1
     TextHint = '(Custom command)'
     OnKeyPress = EditCustomPromptKeyPress
+    ExplicitWidth = 472
   end
   object CardPanel: TCardPanel
     AlignWithMargins = True
@@ -102,6 +108,8 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     Caption = 'CardPanel'
     TabOrder = 2
+    ExplicitWidth = 472
+    ExplicitHeight = 222
     object Card1: TCard
       Left = 0
       Top = 0
@@ -166,6 +174,8 @@ object MainForm: TMainForm
       Caption = 'Card3'
       CardIndex = 2
       TabOrder = 2
+      ExplicitWidth = 472
+      ExplicitHeight = 222
       object BrowserForChat: TEdgeBrowser
         Left = 0
         Top = 0
@@ -176,6 +186,8 @@ object MainForm: TMainForm
         AllowSingleSignOnUsingOSPrimaryAccount = False
         TargetCompatibleBrowserVersion = '117.0.2045.28'
         UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
+        ExplicitWidth = 472
+        ExplicitHeight = 222
       end
     end
     object Card4: TCard

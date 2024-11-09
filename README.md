@@ -221,7 +221,7 @@ Add a shortcut of the `WritingTools.exe` to the Windows Start-Up folder.
 1. Build this project with Delphi (Target: Win64);
 1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _Win64/Debug_).
 
-# 👏‍ Acknowledgements
+## 👏‍ Acknowledgements
 
 * This project is inspired by another [WritingTools](https://github.com/theJayTea/WritingTools).
    Let's keep things simple, with Delphi.
