@@ -177,7 +177,7 @@ Users can change hotkey, title and background. Note: _width_ and _height_ are be
 
 Some vibrant gradients:
 
-|||||||||
+|These|vibrant|gradients|exhibit|a|very|sweet|appearance|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |2c91fe, 5f21df</br><img src="media/5f21df_2c91fe.png" width="64px"></img>|2aa4fe, 2497e7</br><img src="media/2497e7_2aa4fe.png" width="64px"></img>|f0cb79, c79f35</br><img src="media/c79f35_f0cb79.png" width="64px"></img>|cc9621, 6d16be</br><img src="media/6d16be_cc9621.png" width="64px"></img>|cfcb3d, 3dc7de</br><img src="media/3dc7de_cfcb3d.png" width="64px"></img>|b979f0, 7a2be0</br><img src="media/7a2be0_b979f0.png" width="64px"></img>|edcb77, c8730d</br><img src="media/c8730d_edcb77.png" width="64px"></img>|cbc445, 6681e3</br><img src="media/6681e3_cbc445.png" width="64px"></img>|
 |35d2fa, b6ea9c</br><img src="media/b6ea9c_35d2fa.png" width="64px"></img>|483af3, 7010a4</br><img src="media/7010a4_483af3.png" width="64px"></img>|cc9211, ba16e0</br><img src="media/ba16e0_cc9211.png" width="64px"></img>|a1450a, c3a822</br><img src="media/c3a822_a1450a.png" width="64px"></img>|08b3d3, 23eef9</br><img src="media/23eef9_08b3d3.png" width="64px"></img>|94c37e, c3b72f</br><img src="media/c3b72f_94c37e.png" width="64px"></img>|5b2af0, eaac65</br><img src="media/eaac65_5b2af0.png" width="64px"></img>|651ed8, 375af7</br><img src="media/375af7_651ed8.png" width="64px"></img>|
