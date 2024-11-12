@@ -481,14 +481,14 @@ end;
 procedure TThreadedTask.Start(ANext: TLLMAPIEnded);
 begin
   FNext := ANext;
-{$ifdef fpc}
-  BeginThread(_RunThreadedTask, Self);
-{$else}
+{$ifdef dcc}
   var T := TTask.Create(procedure
     begin
       _RunThreadedTask(Self);
     end);
   T.Start;
+{$else}
+  BeginThread(_RunThreadedTask, Self);
 {$endif}
 end;
 
@@ -516,7 +516,7 @@ constructor TLLMPrintItem.Create(ALLM: TChatLLM; APrintType: Integer; AUTF8Str: 
 begin
   FLLM := ALLM;
   FPrintType := APrintType;
-  FStr := string(UTF8Decode(AUTF8Str));
+  FStr := string(UTF8ToString(AUTF8Str));
 end;
 
 procedure TLLMPrintItem.SyncedRun;
@@ -556,7 +556,7 @@ end;
 function TChatLLM.Chat(const AInput: string): Integer;
 begin
   if Busy then Exit(-1);
-  
+
   Result := 0;
   SetBusy(True);
 
@@ -749,10 +749,10 @@ end;
 procedure TChatLLM.TextEmbeddingEnd(AState: Integer);
 var
   A: array of Single;
-{$ifdef fpc}
-  L: array of string;
-{$else}
+{$ifdef dcc}
   L: TArray<string>;
+{$else}
+  L: array of string;
 {$endif}
   I: Integer;
 begin

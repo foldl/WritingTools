@@ -78,7 +78,6 @@ object MainForm: TMainForm
         Caption = 'Clear'
         TabOrder = 1
         Visible = False
-        OnClick = ButtonClearClick
         ExplicitLeft = 400
       end
     end
@@ -94,7 +93,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     TabOrder = 1
     TextHint = '(Custom command)'
-    OnKeyPress = EditCustomPromptKeyPress
     ExplicitWidth = 472
   end
   object CardPanel: TCardPanel

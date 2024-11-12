@@ -8,7 +8,7 @@ https://github.com/user-attachments/assets/6a530cd7-2953-4a89-ac87-ca3b40e7b07e
 Writing Tools, Apple's AI-inspired app, enchants Windows, enhancing your pen with AI LLMs.
 One hotkey press, system-wide, fixes grammar, punctuation, and more. It's the world's most intelligent, system-wide grammar assistant.
 
-Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [Delphi](https://www.embarcadero.com/products/delphi).
+Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [Delphi](https://www.embarcadero.com/products/delphi) and [Lazarus](https://www.lazarus-ide.org/).
 
 ### 🌟 Why Choose Writing Tools?
 
@@ -210,16 +210,32 @@ Some vibrant gradients:
    check the [document](https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH) and install it.
    [Link](https://go.microsoft.com/fwlink/p/?LinkId=2124703)
 
+#### Know Issues
+
+1. Lazarus: Ctrl+B not work when focused in Web View.
+
+1. Reading of current selection through clipboard is unreliable. Please re-try.
+
 ### Auto Run
 
 Add a shortcut of the `WritingTools.exe` to the Windows Start-Up folder.
 
 ## 👨‍💻 To compile the application yourself:
 
-1. Build `libchatllm` or get `libchatllm.dll` & `ggml.dll` from releases;
+Precondition: Build `libchatllm` or get `libchatllm.dll` & `ggml.dll` from releases;
+
+### Delphi
+
 1. Install [Delphi Community Edition](https://www.embarcadero.com/products/delphi/starter/free-download/);
-1. Build this project with Delphi (Target: Win64);
+1. Build this project (Target: Win64);
 1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _Win64/Debug_).
+
+### Lazarus
+
+1. Install [Lazarus](https://www.lazarus-ide.org/) Win64;
+1. Install package [WebView4Delphi](https://github.com/salvadordf/WebView4Delphi) to Lazarus;
+1. Build this project (_LazWritingTools.lpi_);
+1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _lib/x86\_64-win64_).
 
 ## 👏‍ Acknowledgements
 

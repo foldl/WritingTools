@@ -19,7 +19,8 @@ uses
   MarkdownDaringFireball in 'markdown\MarkdownDaringFireball.pas',
   MarkdownHTMLEntities in 'markdown\MarkdownHTMLEntities.pas',
   MarkdownProcessor in 'markdown\MarkdownProcessor.pas',
-  MarkdownUnicodeUtils in 'markdown\MarkdownUnicodeUtils.pas';
+  MarkdownUnicodeUtils in 'markdown\MarkdownUnicodeUtils.pas',
+  UnitTools in 'UnitTools.pas';
 
 {$R *.res}
 

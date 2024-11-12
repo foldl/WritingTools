@@ -3,6 +3,8 @@
 /Win32
 /Win64
 /Release
+/lib
+backup/
 *.dproj.local
 *.identcache
 *.dll

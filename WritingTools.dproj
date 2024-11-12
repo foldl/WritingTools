@@ -148,6 +148,7 @@
         <DCCReference Include="markdown\MarkdownHTMLEntities.pas"/>
         <DCCReference Include="markdown\MarkdownProcessor.pas"/>
         <DCCReference Include="markdown\MarkdownUnicodeUtils.pas"/>
+        <DCCReference Include="UnitTools.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
