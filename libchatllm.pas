@@ -27,7 +27,9 @@ type
       PRINTLN_HISTORY_AI      = 6,    // print a whole line: AI output history
       PRINTLN_TOOL_CALLING    = 7,    // print a whole line: tool calling (supported by only a few models)
       PRINTLN_EMBEDDING       = 8,    // print a whole line: embedding (example: "0.1, 0.3, ...")
-      PRINTLN_RANKING         = 9     // print a whole line: ranking (example: "0.8")
+      PRINTLN_RANKING         = 9,    // print a whole line: ranking (example: "0.8")
+
+      PRINT_EVT_ASYNC_COMPLETED  = 100   // last async operation completed (utf8_str is null)
   );
 
   TChatLLMPrint = procedure(UserData: Pointer; APrintType: Integer; AUTF8Str: PAnsiChar); cdecl;
@@ -94,6 +96,17 @@ type
     @return                      0 if succeeded
   }
   function ChatLLMUserInput(Obj: PChatLLMObj; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_user_input';
+
+  {
+    @brief set prefix for AI generation
+
+    This prefix is used in all following rounds..
+
+    @param[in] obj               model object
+    @param[in] utf8_str          prefix
+    @return                      0 if succeeded
+  }
+  function ChatLLMSetAIPrefix(Obj: PChatLLMObj; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_set_ai_prefix';
 
   {
     @brief tool input
@@ -205,6 +218,7 @@ type
   TChatLLM = class
   private
     FObj: PChatLLMObj;
+    FOutputAcc: string;
     FMetaAcc: string;
     FMiscResult: string;
     FOnPrintHistoryAI: TLLMPrintEvent;
@@ -220,6 +234,7 @@ type
     FOnStateChanged: TLLMStateChangedEvent;
     FOnTextEmbeddingResult: TLLMTextEmbeddingResult;
     FOnQARankingResult: TLLMQARankingResult;
+    FAutoAbortSufffix: string;
     function GetBusy: Boolean;
     procedure SetOnChunk(const Value: TLLMPrintEvent);
     procedure SetOnPrintError(const Value: TLLMPrintEvent);
@@ -241,6 +256,7 @@ type
     procedure ChatEnd(AState: Integer);
     procedure TextEmbeddingEnd(AState: Integer);
     procedure QARankingEnd(AState: Integer);
+    procedure SetAIPrefix(const Value: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -277,6 +293,9 @@ type
     property OnQARankingResult: TLLMQARankingResult read FOnQARankingResult write SetOnQARankingResult;
 
     property OnStateChanged: TLLMStateChangedEvent read FOnStateChanged write SetOnStateChanged;
+
+    property AIPrefix: string write SetAIPrefix;
+    property AutoAbortSufffix: string read FAutoAbortSufffix write FAutoAbortSufffix;
   end;
 
 implementation
@@ -557,6 +576,7 @@ function TChatLLM.Chat(const AInput: string): Integer;
 begin
   if Busy then Exit(-1);
 
+  FOutputAcc := '';
   Result := 0;
   SetBusy(True);
 
@@ -585,8 +605,14 @@ begin
   case APrintType of
     Ord(TPrintType.PRINT_CHAT_CHUNK):
       begin
+        FOutputAcc := FOutputAcc + S;
         if Assigned(FOnChunk) then
           FOnChunk(Self, S);
+        if FAutoAbortSufffix <> '' then
+        begin
+          if FOutputAcc.TrimRight.EndsWith(FAutoAbortSufffix) then
+            AbortGeneration;          
+        end;
       end;
     Ord(TPrintType.PRINTLN_META):
       begin
@@ -649,6 +675,11 @@ end;
 procedure TChatLLM.Restart;
 begin
   ChatLLMRestart(FObj, nil);
+end;
+
+procedure TChatLLM.SetAIPrefix(const Value: string);
+begin
+  ChatLLMSetAIPrefix(FObj, PAnsiChar(UTF8Encode(Value)));
 end;
 
 procedure TChatLLM.SetBusy(AValue: Boolean);

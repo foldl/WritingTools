@@ -35,6 +35,8 @@ type
     FPrompt: string;
     FShortcut: Char;
     FName: string;
+    FAIPrefix: string;
+    FAISuffix: string;
     FLLMName: string;
   public
     constructor Create(O: ISuperObject);
@@ -211,10 +213,8 @@ function ParseActionTypeDef(S: string; Def: TWritingActionType = watReplace): TW
 
 procedure SimulateCopy(KeyConfig: THotkeyConfig);
 procedure SimulatePaste(KeyConfig: THotkeyConfig);
-procedure SimulateGoLeft(KeyConfig: THotkeyConfig);
-procedure SimulateGoRight(KeyConfig: THotkeyConfig);
 
-function SafeGetClipboard(Retry: Integer = 10): string;
+function SafeGetClipboard(var S: string; Retry: Integer = 10): Boolean;
 
 implementation
 
@@ -279,17 +279,35 @@ begin
 {$endif}
 end;
 
-function SafeGetClipboard(Retry: Integer): string;
+function SafeGetClipboard(var S: string; Retry: Integer): Boolean;
 var
   I: Integer;
 begin
-  Result := '';
+  Result := False;
   I := 0;
   while I < Retry do
   begin
     Inc(I);
     try
-      Result := Clipboard.AsText;
+      S := Clipboard.AsText;
+      Result := True;
+      Break;
+    except
+      Sleep(80);
+    end
+  end;
+end;
+
+procedure SafeSetClipboard(Text: string; Retry: Integer = 2);
+var
+  I: Integer;
+begin
+  I := 0;
+  while I < Retry do
+  begin
+    Inc(I);
+    try
+      Clipboard.AsText := Text;
       Break;
     except
       Sleep(50);
@@ -342,28 +360,6 @@ begin
   SendKeyEvent(Ord('V'), False, KeyConfig.Delay2);
   SendKeyEvent(Ord('V'), True, KeyConfig.Delay2);
   SendKeyEvent(VK_CONTROL, True, KeyConfig.Delay2);
-end;
-
-procedure SimulateGoLeft(KeyConfig: THotkeyConfig);
-begin
-  SendKeyEvent(VK_LEFT, False, KeyConfig.Delay2);
-  SendKeyEvent(VK_LEFT, True, KeyConfig.Delay2);
-
-  Sleep(KeyConfig.Delay1);
-
-  SendKeyEvent(VK_RETURN, False, KeyConfig.Delay2);
-  SendKeyEvent(VK_RETURN, True, KeyConfig.Delay2);
-end;
-
-procedure SimulateGoRight(KeyConfig: THotkeyConfig);
-begin
-  SendKeyEvent(VK_RIGHT, False, KeyConfig.Delay2);
-  SendKeyEvent(VK_RIGHT, True, KeyConfig.Delay2);
-
-  Sleep(KeyConfig.Delay1);
-
-  SendKeyEvent(VK_RETURN, False, KeyConfig.Delay2);
-  SendKeyEvent(VK_RETURN, True, KeyConfig.Delay2);
 end;
 
 function ParseActionType(S: string; var T: TWritingActionType): Boolean;
@@ -534,6 +530,8 @@ begin
   FExtractCode := O.B['code'];
   FLLMName := string(O.S['llm']);
   FOriginalActionType := FActionType;
+  FAIPrefix := string(O.S['ai_prefix']);
+  FAISuffix := string(O.S['ai_suffix']);
 
   S := string(O.S['accelerator']);
   if Length(S) = 1 then
@@ -672,37 +670,40 @@ end;
 procedure TWritingTools.CompleteAction;
 const
   ERR_MSG = 'ERROR_TEXT_INCOMPATIBLE_WITH_REQUEST';
+var
+  Combined: string;
 begin
   if FOutputAcc.IndexOf(ERR_MSG) >= 0 then
   begin
-    Clipboard.AsText := FClipboardBackup;
+    SafeSetClipboard(FClipboardBackup);
     Exit;
   end;
 
   if FCurAction.ActionType = watShow then
   begin
-    Clipboard.AsText := FClipboardBackup;
+    SafeSetClipboard(FClipboardBackup);
     Exit;
   end;
 
   if FCurAction.ActionType = watClipboard then
   begin
-    Clipboard.AsText := FOutputAcc;
+    SafeSetClipboard(FOutputAcc);
     FForm.Hide;
     Exit;
   end;
 
-  Clipboard.AsText := FOutputAcc;
-  FForm.Hide;
-
   case FCurAction.ActionType of
-    watPrepend: SimulateGoLeft(FProfile.HotkeyConfig);
-    watReplace: ;
-    watAppend: SimulateGoRight(FProfile.HotkeyConfig);
+    watPrepend: Combined := FOutputAcc.TrimRight + #13#10 + FContext; // Windows!
+    watReplace: Combined := FOutputAcc;
+    watAppend: Combined := FContext.TrimRight + #13#10 + FOutputAcc;
   end;
 
+  SafeSetClipboard(Combined);
+  FForm.Hide;
+
   SimulatePaste(FProfile.HotkeyConfig);
-  Clipboard.AsText := FClipboardBackup;
+  Sleep(FProfile.HotkeyConfig.Delay3);
+  SafeSetClipboard(FClipboardBackup);
 end;
 
 constructor TWritingTools.Create(AForm: TCustomForm; AUI: IWritingToolsUI; ProfileFn: string);
@@ -763,6 +764,8 @@ begin
     FUI.ShowPage(CARD_SHOW);
   end;
   FCurLLM.Restart(FCurAction.SysPrompt);
+  FCurLLM.AIPrefix := FCurAction.FAIPrefix;
+  FCurLLM.AutoAbortSufffix := FCurAction.FAISuffix;
   S := FCurAction.Prompt;
   S := S.Replace('{context}', FContext);
   FCurLLM.Chat(S);
@@ -818,7 +821,7 @@ var
     begin
       if SameText(prefix, 'chat') then
       begin
-        Clipboard.AsText := FClipboardBackup;
+        SafeSetClipboard(FClipboardBackup, 1);
         FContext := '';
         FUI.ShowStatus('Quick chat');
         Delete(Prompt, 1, I);
@@ -1000,7 +1003,8 @@ var
 begin
   EditCustomPrompt.Text := '';
   ActiveCardIndex := 0;
-  FClipboardBackup := SafeGetClipboard(1);
+  if not SafeGetClipboard(FClipboardBackup, 1) then Exit;
+
   FContext := '';
 
   W1 := GetClipboardSequenceNumber;
@@ -1008,12 +1012,13 @@ begin
   SimulateCopy(FProfile.HotkeyConfig);
 
   Sleep(FProfile.HotkeyConfig.Delay3);
+
+  if not SafeGetClipboard(FContext, 1) then Exit;
+
   W2 := GetClipboardSequenceNumber;
 
-  if W1 <> W2 then
-  begin
-    FContext := Trim(SafeGetClipboard);
-  end;
+  if W1 = W2 then
+    FContext := '';
 
   if FContext = '' then
     FUI.ShowStatus('(Empty) Go quick chat.')

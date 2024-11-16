@@ -121,9 +121,11 @@ _Actions_ are represented to users as a collection of buttons. Each action is de
    "name": "My Action",
    "prompt": "Check this:\n\n{context}",
    "sys_prompt": "....",
-   "accelerator": "p",
-   "llm": "another_one",
-   "action": "show"
+   "accelerator": "p",        // optional
+   "llm": "another_one",      // optional
+   "ai_prefix": "...",        // optional
+   "ai_suffix": "...",        // optional
+   "action": "show"           // optional
 }
 ```
 
@@ -132,15 +134,25 @@ _Actions_ are represented to users as a collection of buttons. Each action is de
 * `sys_prompt` is the system prompt fed to the LLM.
 * `accelerator` is the accelerator of the button (single char, optional).
 * `llm` is selected LLM to serve this action (when omitted, "default" is selected).
+* `ai_prefix` is used for [generation steering](https://github.com/foldl/chatllm.cpp/blob/master/docs/fun.md#generation-steering).
+* `ai_suffix` is used abort generation: once this suffix is found in LLM's output, generation is aborted.
 * `action` is the post action to handle the output of LLM. Possible values:
 
    - `show`: show the output in a box.
-   - `prepend`: prepend the output in front of current selection (see Note).
+   - `prepend`: prepend the output in front of current selection.
    - `replace`: replace the current selection by the output (**default**).
-   - `append`: append the output following current selection (see Note).
+   - `append`: append the output following current selection.
    - `clipboard`: copy the output to the clipboard.
 
-   Note: `prepend` and `append` might not work as expected. It depends on how the application handles keyboard inputs. They work in _Notepad_.
+An example of `ai_prefix` and `ai_suffix`: **force** AI to generate **just** doxgen-style comments for functions.
+
+```js
+{
+   "ai_prefix": "\/** @brief",
+   "ai_suffix": "*\/",
+   // ...
+}
+```
 
 A list of such actions are defined under `actions` in `profile.json`.
 
