@@ -998,8 +998,11 @@ begin
 end;
 
 procedure TWritingTools.UserHotkey;
+const
+  MARGIN = 5;
 var
   W1, W2: DWORD;
+  Monitor: TMonitor;
 begin
   EditCustomPrompt.Text := '';
   ActiveCardIndex := 0;
@@ -1027,8 +1030,15 @@ begin
 
   FOutputAcc := '';
 
-  FForm.Left := Mouse.CursorPos.X + 5;
-  FForm.Top := Mouse.CursorPos.Y + 5;
+  Monitor := Screen.MonitorFromPoint(TPoint.Create(Mouse.CursorPos.X, Mouse.CursorPos.Y));
+  if Mouse.CursorPos.X + MARGIN + FForm.Width < Monitor.Left + Monitor.Width then
+    FForm.Left := Mouse.CursorPos.X + MARGIN
+  else
+    FForm.Left := Mouse.CursorPos.X - FForm.Width - MARGIN;
+  if Mouse.CursorPos.Y + MARGIN + FForm.Height < Monitor.Top + Monitor.Height then
+    FForm.Top := Mouse.CursorPos.Y + MARGIN
+  else
+    FForm.Top := Mouse.CursorPos.Y - FForm.Height - MARGIN;
 
   FForm.Show;
   SetForegroundWindow(FForm.Handle);
