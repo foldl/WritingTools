@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus,
-  Windows,
+  Windows, LMessages, ActiveX,
   ActnList, StdCtrls, ComCtrls, uWVBrowser, uWVWindowParent, uWVLoader,
   uWVBrowserBase, uWVTypes, uWVEvents, uWVTypeLibrary,
   UnitTools;
@@ -72,6 +72,9 @@ type
     procedure FormShow(Sender: TObject);
     procedure PageActionsResize(Sender: TObject);
     procedure Show1Click(Sender: TObject);
+    procedure WVBrowser1AcceleratorKeyPressed(Sender: TObject;
+      const aController: ICoreWebView2Controller;
+      const aArgs: ICoreWebView2AcceleratorKeyPressedEventArgs);
   private
     FWritingTools: TWritingTools;
     FBrowserUpdater: TEdgeBrowserUpdater;
@@ -304,6 +307,38 @@ end;
 procedure TMainForm.Show1Click(Sender: TObject);
 begin
   Show;
+end;
+
+procedure TMainForm.WVBrowser1AcceleratorKeyPressed(Sender: TObject;
+  const aController: ICoreWebView2Controller;
+  const aArgs: ICoreWebView2AcceleratorKeyPressedEventArgs);
+var
+  Msg: TMessage;
+  Key: SYSUINT;
+  LParam: SYSINT;
+  KeyEventKind: COREWEBVIEW2_KEY_EVENT_KIND;
+begin
+  if Failed(aArgs.Get_VirtualKey(Key))
+    or Failed(aArgs.Get_KeyEventLParam(LParam))
+    or Failed(aArgs.Get_KeyEventKind(KeyEventKind)) then Exit;
+
+  case KeyEventKind of
+    COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN:
+      Msg.Msg := WM_KEYDOWN;
+    COREWEBVIEW2_KEY_EVENT_KIND_KEY_UP:
+      Msg.Msg := WM_KEYUP;
+    COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN:
+      Msg.Msg := WM_SYSKEYDOWN;
+    COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_UP:
+      Msg.Msg := WM_SYSKEYUP;
+  else
+    Msg.Msg := 0;
+  end;
+  Msg.WParam := Key;
+  Msg.LParam := LParam;
+
+  if IsShortcut(TLMKey(Msg)) then
+    aArgs.Set_Handled(Integer(LongBool(True)));
 end;
 
 procedure TMainForm.LayoutButtons;

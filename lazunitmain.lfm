@@ -3061,6 +3061,7 @@ object MainForm: TMainForm
   object WVBrowser1: TWVBrowser
     TargetCompatibleBrowserVersion = '130.0.2849.39'
     AllowSingleSignOnUsingOSPrimaryAccount = False
+    OnAcceleratorKeyPressed = WVBrowser1AcceleratorKeyPressed
     Left = 88
     Top = 40
   end
