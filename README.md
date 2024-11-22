@@ -224,8 +224,6 @@ Some vibrant gradients:
 
 #### Know Issues
 
-1. Lazarus: Ctrl+B not work when focused in Web View.
-
 1. Reading of current selection through clipboard is unreliable. Please re-try.
 
 ### Auto Run
