@@ -10,6 +10,8 @@ One hotkey press, system-wide, fixes grammar, punctuation, and more. It's the wo
 
 Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [Delphi](https://www.embarcadero.com/products/delphi) and [Lazarus](https://www.lazarus-ide.org/).
 
+🚀🚀🚀 Don't forget to update ChatLLM.cpp bindings to enjoy GPU acceleration!
+
 ### 🌟 Why Choose Writing Tools?
 
 >_In the realm of AI, a secret lies,</br> Where LLMs run on your very site.</br> System-wide, without a hitch,</br> Instantly in any app you might pick._</br>
