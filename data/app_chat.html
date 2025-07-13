@@ -1,0 +1,290 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✻</text></svg>" type="image/svg+xml">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.30.0/themes/prism.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="uikit.min.css">
+        <style>
+            code {
+                font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+                background: #f5f2f0;
+            }
+
+            .message_user {
+                background-color: #eee;
+            }
+
+            .message_bot {
+                background-color: #f3f3f3;
+            }
+
+            .message_container {
+                height: auto;
+                width: auto;
+                display: flex;
+                border-radius: 10px;
+                align-content: center;
+                margin-bottom: 15px;
+                padding: 10px;
+            }
+
+            .diff_container {
+                background-color: #f3f3f3;
+                height: auto;
+                width: auto;
+                border-radius: 10px;
+                align-content: center;
+                margin-bottom: 15px;
+                padding: 10px;
+            }
+
+            .avatar_container {
+                height: 32px;
+                width: 32px;
+                align-content: center;
+                display: inline-block;
+                vertical-align: top;
+                border-radius: 10px;
+                margin-top: 20px;
+                margin-right: 5px;
+            }
+
+            .avatar_bot {
+                background-color: #ef6A68
+            }
+
+            .avatar_user {
+                background-color: #e90;
+            }
+
+            .avatar_icon_user {
+                height: 24px;
+                width: 24px;
+                align-content: center;
+                padding-left: 8px;
+                background: url("data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%20fill%3D%22%23fff%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20color%3D%22inherit%22%20class%3D%22eyeqlp53%20st-emotion-cache-1b2ybts%20ex0cdmw0%22%3E%3Cpath%20fill%3D%22none%22%20d%3D%22M0%200h24v24H0V0z%22%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M10.25%2013a1.25%201.25%200%2011-2.5%200%201.25%201.25%200%20012.5%200zM15%2011.75a1.25%201.25%200%20100%202.5%201.25%201.25%200%20000-2.5zm7%20.25c0%205.52-4.48%2010-10%2010S2%2017.52%202%2012%206.48%202%2012%202s10%204.48%2010%2010zM10.66%204.12C12.06%206.44%2014.6%208%2017.5%208c.46%200%20.91-.05%201.34-.12C17.44%205.56%2014.9%204%2012%204c-.46%200-.91.05-1.34.12zM4.42%209.47a8.046%208.046%200%20003.66-4.44%208.046%208.046%200%2000-3.66%204.44zM20%2012c0-.78-.12-1.53-.33-2.24-.7.15-1.42.24-2.17.24a10%2010%200%2001-7.76-3.69A10.016%2010.016%200%20014%2011.86c.01.04%200%20.09%200%20.14%200%204.41%203.59%208%208%208s8-3.59%208-8z%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E");
+                background-repeat: no-repeat;
+                background-position: center;
+            }
+
+            .avatar_icon_bot {
+                height: 24px;
+                width: 24px;
+                align-content: center;
+                padding-left: 8px;
+                background: url("data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20aria-hidden%3D%22true%22%20focusable%3D%22false%22%20fill%3D%22%23fff%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20color%3D%22inherit%22%20class%3D%22eyeqlp53%20st-emotion-cache-1b2ybts%20ex0cdmw0%22%3E%3Crect%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22none%22%3E%3C%2Frect%3E%3Cpath%20d%3D%22M20%209V7c0-1.1-.9-2-2-2h-3c0-1.66-1.34-3-3-3S9%203.34%209%205H6c-1.1%200-2%20.9-2%202v2c-1.66%200-3%201.34-3%203s1.34%203%203%203v4c0%201.1.9%202%202%202h12c1.1%200%202-.9%202-2v-4c1.66%200%203-1.34%203-3s-1.34-3-3-3zm-2%2010H6V7h12v12zm-9-6c-.83%200-1.5-.67-1.5-1.5S8.17%2010%209%2010s1.5.67%201.5%201.5S9.83%2013%209%2013zm7.5-1.5c0%20.83-.67%201.5-1.5%201.5s-1.5-.67-1.5-1.5.67-1.5%201.5-1.5%201.5.67%201.5%201.5zM8%2015h8v2H8v-2z%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E");
+                background-repeat: no-repeat;
+                background-position: center;
+            }
+
+            .message {
+                box-sizing: border-box;
+                width: auto;
+                display: inline-block;
+                vertical-align: top;
+            }
+        </style>
+    </head>
+
+    <body class="language-C" style="padding: 10px">
+
+        <div id="#chat-container" style="margin-top: 10px; padding: 5px;"> </div>
+
+        <script src=" https://cdn.jsdelivr.net/npm/diff@8.0.2/dist/diff.min.js "></script>
+
+        <!-- Marked.js for Markdown -->
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+        <!-- Prism.js Core & Autoloader for syntax highlighting -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+        <!-- MathJax Configuration & Script -->
+        <script>
+            window.MathJax = {
+                tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true },
+                svg: { fontCache: 'global' },
+                startup: { ready: () => { console.log('MathJax is ready.'); MathJax.startup.defaultReady(); } }
+            };
+        </script>
+        <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+        <script>
+            var g_mermaid = null;
+            var chat_container = document.getElementById('#chat-container');
+            var ai_container = null;
+            var toggleButton = null;
+            var thoughtContainer = null;
+            var is_thinking = false;
+            var g_thought_start_time = 0;
+            var round_id = 0;
+            var is_ai_turn = false;
+            var g_md_src = "";
+            var g_thought_src = "";
+
+            marked.use({
+                mangle: false,
+                headerIds: false,
+            });
+
+            function render_markdown(src, ele) {
+                let content = marked.parse(src);
+                ele.innerHTML = content;
+            }
+
+            function render_throught() {
+                render_markdown(g_thought_src, thoughtContainer);
+            }
+
+            function render_main() {
+                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
+
+                render_markdown(g_md_src, ai_container);
+                Prism.highlightAllUnder(ai_container);
+
+                if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+                    MathJax.typesetPromise([ai_container])
+                        .catch(err => console.warn(`MathJax processing error for ${sender} message:`, err));
+                }
+                g_mermaid.initialize();
+
+                // Only scroll if user was already at bottom
+                if (isAtBottom) {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+            }
+
+            function ai_append_thought_chunk(chunk) {
+                prepare_for_ai_turn();
+                if (!is_thinking) {
+                    is_thinking = true;
+                    toggleButton.style.display = 'block';
+                    toggleButton.textContent = 'Thinking ...';
+                    g_thought_start_time = performance.now();
+                }
+                g_thought_src += chunk;
+                render_throught();
+            }
+
+            function ai_append_chunk(chunk) {
+                prepare_for_ai_turn();
+                if (is_thinking) {
+                    is_thinking = false;
+                    toggleButton.textContent = 'Thought for ' + ((performance.now() - g_thought_start_time) / 1000).toFixed(2) + ' s';
+                }
+                g_md_src += chunk;
+                render_main();
+            }
+
+            function ai_done() {
+                if (is_thinking) {
+                    is_thinking = false;
+                    toggleButton.textContent = 'Thought for ' + ((performance.now() - g_thought_start_time) / 1000).toFixed(2) + ' s';
+                }
+            }
+
+            function reset() {
+                g_md_src = "";
+                g_thought_src = "";
+                is_thinking = false;
+                g_thought_start_time = 0;
+                chat_container.innerHTML = "";
+                is_ai_turn = false;
+            }
+
+            function prepare_for_ai_turn() {
+                if (is_ai_turn) return;
+                is_ai_turn = true;
+                round_id += 1;
+                let newDiv = document.createElement("div");
+                newDiv.className = "message_container message_bot";
+                newDiv.innerHTML = '<div class="avatar_container avatar_bot"><div class="avatar_icon_bot"></div></div>'
+                    + '<div>'
+                    + '<button id="#toggleThoughtButton-' + round_id + '" style="margin: 5px; background-color: hsl(240, 86%, 78%); color: white; border: 2px solid hsl(240, 88%, 74%); border-radius: 5px; cursor: pointer; font-size: 0.9em;">Thinking</button>'
+                    + '<div id="#thought_container-' + round_id + '" style="margin-top: 10px; padding: 5px; border-left: 4px solid #aaa; padding-left: 10px; background-color: #ddd; border-radius: 5px"> </div>'
+                    + '<div id="#container-' + round_id + '" style="margin-top: 10px; padding: 5px;"></div>'
+                    + '</div>';
+                chat_container.appendChild(newDiv);
+
+                ai_container    = document.getElementById('#container-' + round_id);
+                toggleButton    = document.getElementById('#toggleThoughtButton-' + round_id);
+                let thought     = document.getElementById('#thought_container-' + round_id);
+                thoughtContainer= thought;
+
+                toggleButton.style.display = 'none';
+                thought.style.display = 'none';
+
+                toggleButton.addEventListener('click', function() {
+                    if (thought.style.display === 'none') {
+                        thought.style.display = 'block';
+                    } else {
+                        thought.style.display = 'none';
+                    }
+                });
+
+                g_md_src = "";
+                g_thought_src = "";
+                is_thinking = false;
+                g_thought_start_time = 0;
+            }
+
+            function append_user_input(input) {
+                if (is_ai_turn) {
+                    ai_done()
+                }
+                is_ai_turn = false;
+                round_id += 1;
+                let newDiv = document.createElement("div");
+                newDiv.className = "message_container message_user";
+                newDiv.innerHTML = '<div class="avatar_container avatar_user"><div class="avatar_icon_user"></div></div>' +
+                        '<div class="message" id="#message-' + round_id + '"></div>';
+                chat_container.appendChild(newDiv);
+
+                let msg     = document.getElementById('#message-' + round_id);
+                msg.innerText = input;
+            }
+
+            function app_diff(one, other) {
+                reset();
+                var color = '',
+                    span = null;
+
+                var diff = Diff.diffChars(one, other);
+                var fragment = document.createElement("div");
+
+                diff.forEach(function(part){
+                    // green for additions, red for deletions
+                    // grey for common parts
+                    color = part.added ? 'green' :
+                        part.removed ? 'red' : 'grey';
+                    span = document.createElement('span');
+                    span.style.color = color;
+                    span.appendChild(document
+                        .createTextNode(part.value));
+                    fragment.appendChild(span);
+                    });
+
+                let div_one = document.createElement("div");
+                div_one.className = "diff_container";
+                div_one.innerText = one;
+
+                let div_other = document.createElement("div");
+                div_other.className = "diff_container";
+                div_other.innerText = other;
+
+                fragment.className = "diff_container";
+
+                chat_container.appendChild(div_one);
+                chat_container.appendChild(div_other);
+                chat_container.appendChild(fragment);
+            }
+        </script>
+
+        <script type="module">
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+            mermaid.initialize({ startOnLoad: true });
+            g_mermaid = mermaid;
+        </script>
+    </body>
+</html>

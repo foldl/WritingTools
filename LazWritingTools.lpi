@@ -64,10 +64,6 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="LibChatLLM"/>
       </Unit>
-      <Unit>
-        <Filename Value="markdown\MarkdownProcessor.pas"/>
-        <IsPartOfProject Value="True"/>
-      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -78,12 +74,10 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="markdown"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
-        <GenerateDebugInfo Value="False"/>
         <RunWithoutDebug Value="True"/>
         <DebugInfoType Value="dsDwarf3"/>
       </Debugging>

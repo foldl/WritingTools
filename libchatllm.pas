@@ -28,8 +28,24 @@ type
       PRINTLN_TOOL_CALLING    = 7,    // print a whole line: tool calling (supported by only a few models)
       PRINTLN_EMBEDDING       = 8,    // print a whole line: embedding (example: "0.1, 0.3, ...")
       PRINTLN_RANKING         = 9,    // print a whole line: ranking (example: "0.8")
+      PRINTLN_TOKEN_IDS       =10,    // print a whole line: token ids (example: "1,3,5,8,...")
+      PRINTLN_LOGGING         =11,    // print a whole line: internal logging with the first char indicating level
+                                      // (space): None; D: Debug; I: Info; W: Warn; E: Error; .: continue
+      PRINTLN_BEAM_SEARCH     =12,    // print a whole line: a result of beam search with a prefix of probability
+                                      // (example: "0.8,....")
+      PRINTLN_MODEL_INFO      =13,    // when a model is started, print a whole line of basic model information (json format)
+                                      // (example: {"name": "llama", "context_length": 100, "capabilities": [text, ...], ...})
+      PRINT_THOUGHT_CHUNK     =14,    // same as PRINT_CHAT_CHUNK, but this from "thoughts".
+                                      // possible leading or trailing tags (such as <think>, </think>) are removed.
+                                      // use `+detect_thoughts` to enable this.
 
-      PRINT_EVT_ASYNC_COMPLETED  = 100   // last async operation completed (utf8_str is null)
+      PRINT_EVT_ASYNC_COMPLETED       = 100,   // last async operation completed (utf8_str is null)
+      PRINT_EVT_THOUGHT_COMPLETED     = 101    // thought completed
+  );
+
+  TEmbeddingPurpose = (
+    epForDoc   = 0,    // for document
+    epForQuery = 1     // for query
   );
 
   TChatLLMPrint = procedure(UserData: Pointer; APrintType: Integer; AUTF8Str: PAnsiChar); cdecl;
@@ -87,6 +103,29 @@ type
   procedure ChatLLMRestart(Obj: PChatLLMObj; AUTF8Str: PAnsiChar); stdcall; external CHATLLMLIB name 'chatllm_restart';
 
   {
+    @brief prepare to generate a multimedia input, i.e. clear previously added pieces.
+
+    Each `chatllm_obj` has a global multimedia message object, which can be used as user input,
+    or chat history, etc.
+
+    @param[in] obj               model object
+    @return                      0 if succeeded
+  }
+  procedure ChatLLMMultimediaMsgPrepare(Obj: PChatLLMObj); stdcall; external CHATLLMLIB name 'chatllm_multimedia_msg_prepare';
+
+  {
+    @brief add a piece to a multimedia message
+
+    Remember to clear the message by `chatllm_multimedia_msg_prepare` when starting a new message.
+
+    @param[in] obj               model object
+    @param[in] type              type ::= "text" | "image" | "video" | "audio" | ...
+    @param[in] utf8_str          content, i.e. utf8 text content, or base64 encoded data of multimedia data.
+    @return                      0 if succeeded
+  }
+  function ChatLLMMultimediaMsgAppend(Obj: PChatLLMObj; _Type: PAnsiChar; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_multimedia_msg_append';
+
+  {
     @brief user input
 
     This function is synchronized, i.e. it returns after model generation ends and `f_end` is called.
@@ -96,6 +135,16 @@ type
     @return                      0 if succeeded
   }
   function ChatLLMUserInput(Obj: PChatLLMObj; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_user_input';
+
+  {
+    @brief take current multimedia message as user input and run
+
+    This function is synchronized, i.e. it returns after model generation ends and `f_end` is called.
+
+    @param[in] obj               model object
+    @return                      0 if succeeded
+  }
+  function ChatLLMUserInputMultimediaMsg(Obj: PChatLLMObj): Integer; stdcall; external CHATLLMLIB name 'chatllm_user_input_multimedia_msg';
 
   {
     @brief set prefix for AI generation
@@ -142,15 +191,27 @@ type
   function ChatLLMToolCompletion(Obj: PChatLLMObj; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_tool_completion';
 
   {
-    @brief text embedding
+    @brief tokenize
 
-    embedding is emit through `PRINTLN_EMBEDDING`.
+    token ids are emitted through `PRINTLN_TOKEN_IDS`.
 
     @param[in] obj               model object
     @param[in] utf8_str          text
+    @return                      number of ids if succeeded. otherwise -1.
+  }
+  function ChatLLMTextTokenize(Obj: PChatLLMObj; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_text_tokenize';
+
+  {
+    @brief text embedding
+
+    embedding is emitted through `PRINTLN_EMBEDDING`.
+
+    @param[in] obj               model object
+    @param[in] utf8_str          text
+    @param[in] purpose           purpose, see `EmbeddingPurpose`
     @return                      0 if succeeded
   }
-  function ChatLLMTextEmbedding(Obj: PChatLLMObj; AUTF8Str: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_text_embedding';
+  function ChatLLMTextEmbedding(Obj: PChatLLMObj; AUTF8Str: PAnsiChar; Purpose: Integer): Integer; stdcall; external CHATLLMLIB name 'chatllm_text_embedding';
 
   {
     @brief question & answer ranking
@@ -163,6 +224,15 @@ type
     @return                      0 if succeeded
   }
   function ChatLLMQARank(Obj: PChatLLMObj; AUTF8StrQ, AUTF8StrA: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_qa_rank';
+
+  {
+    @brief switching RAG vector store
+
+    @param[in] obj               model object
+    @param[in] name              vector store name
+    @return                      0 if succeeded
+  }
+  function ChatLLMRAGSelectStore(Obj: PChatLLMObj; AName: PAnsiChar): Integer; stdcall; external CHATLLMLIB name 'chatllm_rag_select_store';
 
   {
     @brief abort generation
@@ -218,7 +288,11 @@ type
   TChatLLM = class
   private
     FObj: PChatLLMObj;
+    FOnThoughtChunk: TLLMPrintEvent;
+    FOnThoughtEnded: TNotifyEvent;
     FOutputAcc: string;
+    FThoughtAcc: string;
+    FReferences: TStringList;
     FMetaAcc: string;
     FMiscResult: string;
     FOnPrintHistoryAI: TLLMPrintEvent;
@@ -235,6 +309,9 @@ type
     FOnTextEmbeddingResult: TLLMTextEmbeddingResult;
     FOnQARankingResult: TLLMQARankingResult;
     FAutoAbortSufffix: string;
+    FCallingMode: Boolean;
+    FCallResult: TLLMPrintEvent;
+    FModelInfo: string;
     function GetBusy: Boolean;
     procedure SetOnChunk(const Value: TLLMPrintEvent);
     procedure SetOnPrintError(const Value: TLLMPrintEvent);
@@ -245,8 +322,6 @@ type
     procedure SetOnPrintRewrittenQuery(const Value: TLLMPrintEvent);
     procedure SetOnPrintToolCalling(const Value: TLLMPrintEvent);
     procedure SetGenMaxTokens(const Value: Integer);
-    procedure HandlePrint(APrintType: Integer; S: string);
-    procedure HandleEnd;
     procedure SetOnGenerationEnded(const Value: TNotifyEvent);
     procedure SetOnStateChanged(const Value: TLLMStateChangedEvent);
     procedure SetBusy(AValue: Boolean);
@@ -254,9 +329,18 @@ type
     procedure SetOnTextEmbeddingResult(const Value: TLLMTextEmbeddingResult);
 
     procedure ChatEnd(AState: Integer);
+    procedure CallChatEnd(AState: Integer);
     procedure TextEmbeddingEnd(AState: Integer);
     procedure QARankingEnd(AState: Integer);
     procedure SetAIPrefix(const Value: string);
+
+  protected
+    FThinking: Boolean;
+    procedure InternalChunk(S: string);
+  protected
+    procedure DoBeforeChat; virtual;
+    procedure HandlePrint(APrintType: Integer; S: string); virtual;
+    procedure HandleEnd; virtual;
   public
     constructor Create;
     destructor Destroy; override;
@@ -273,13 +357,18 @@ type
     function ToolCompletion(const AInput: string): Integer;
     procedure AbortGeneration;
 
-    function TextEmbedding(const AText: string): Integer;
+    function CallChat(const AInput: string; OnResult: TLLMPrintEvent): Integer;
+
+    function TextEmbedding(const AText: string; const APurpose: TEmbeddingPurpose = epForDoc): Integer;
     function QARanking(const AQustion, AAnswer: string): Integer;
+    function RAGSelectStore(const AName: string): Integer;
 
     property GenMaxTokens: Integer write SetGenMaxTokens;
     property Busy: Boolean read GetBusy;
   public
     property OnChunk: TLLMPrintEvent read FOnChunk write SetOnChunk;
+    property OnThoughtChunk: TLLMPrintEvent read FOnThoughtChunk write FOnThoughtChunk;
+    property OnThoughtEnded: TNotifyEvent read FOnThoughtEnded write FOnThoughtEnded;
     property OnPrintMeta: TLLMPrintEvent read FOnPrintMeta write SetOnPrintMeta;
     property OnPrintError: TLLMPrintEvent read FOnPrintError write SetOnPrintError;
     property OnPrintReference: TLLMPrintEvent read FOnPrintReference write SetOnPrintReference;
@@ -294,8 +383,14 @@ type
 
     property OnStateChanged: TLLMStateChangedEvent read FOnStateChanged write SetOnStateChanged;
 
+    property OutputAcc: string read FOutputAcc;
+    property ThoughtAcc: string read FThoughtAcc;
+    property ModelInfo: string read FModelInfo;
+
     property AIPrefix: string write SetAIPrefix;
     property AutoAbortSufffix: string read FAutoAbortSufffix write FAutoAbortSufffix;
+
+    property References: TStringList read FReferences;
   end;
 
 implementation
@@ -335,8 +430,9 @@ type
   TThreadedEmbeddingTask = class(TThreadedTask)
   private
     FInput: string;
+    FPurpose: TEmbeddingPurpose;
   public
-    constructor Create(ALLM: TChatLLM; AInput: string);
+    constructor Create(ALLM: TChatLLM; AInput: string; APurpose: TEmbeddingPurpose);
   protected
     procedure Exec; override;
   end;
@@ -428,15 +524,16 @@ end;
 
 { TThreadedEmbeddingTask }
 
-constructor TThreadedEmbeddingTask.Create(ALLM: TChatLLM; AInput: string);
+constructor TThreadedEmbeddingTask.Create(ALLM: TChatLLM; AInput: string; APurpose: TEmbeddingPurpose);
 begin
   inherited Create(ALLM);
   FInput := AInput;
+  FPurpose := APurpose;
 end;
 
 procedure TThreadedEmbeddingTask.Exec;
 begin
-  FState := ChatLLMTextEmbedding(FLLM.FObj, PUTF8Char(UTF8Encode(FInput)));
+  FState := ChatLLMTextEmbedding(FLLM.FObj, PUTF8Char(UTF8Encode(FInput)), Integer(FPurpose));
 end;
 
 { TThreadedQATask }
@@ -551,6 +648,20 @@ begin
   ChatllmAbortGeneration(FObj);
 end;
 
+function TChatLLM.CallChat(const AInput: string; OnResult: TLLMPrintEvent
+  ): Integer;
+begin
+  if Busy then Exit(-1);
+
+  FReferences.Clear;
+  Result := 0;
+  SetBusy(True);
+
+  FCallingMode := True;
+  FCallResult := OnResult;
+  TThreadedChatTask.Create(Self, AInput).Start(CallChatEnd);
+end;
+
 procedure TChatLLM.AddParam(AParams: array of string);
 var
   S: string;
@@ -575,8 +686,11 @@ end;
 function TChatLLM.Chat(const AInput: string): Integer;
 begin
   if Busy then Exit(-1);
-
+  DoBeforeChat;
+  FReferences.Clear;
   FOutputAcc := '';
+  FThinking := False;
+  FThoughtAcc := '';
   Result := 0;
   SetBusy(True);
 
@@ -586,11 +700,13 @@ end;
 constructor TChatLLM.Create;
 begin
   inherited;
+  FReferences := TStringList.Create;
   FObj := ChatLLMCreate;
 end;
 
 destructor TChatLLM.Destroy;
 begin
+  FReferences.Free;
   inherited;
 end;
 
@@ -608,11 +724,6 @@ begin
         FOutputAcc := FOutputAcc + S;
         if Assigned(FOnChunk) then
           FOnChunk(Self, S);
-        if FAutoAbortSufffix <> '' then
-        begin
-          if FOutputAcc.TrimRight.EndsWith(FAutoAbortSufffix) then
-            AbortGeneration;          
-        end;
       end;
     Ord(TPrintType.PRINTLN_META):
       begin
@@ -624,10 +735,12 @@ begin
     Ord(TPrintType.PRINTLN_ERROR):
       begin
         if Assigned(FOnPrintError) then
-          FOnPrintError(Self, S);
+          FOnPrintError(Self, S)
+        else;
       end;
     Ord(TPrintType.PRINTLN_REF):
       begin
+        FReferences.Add(S);
         if Assigned(FOnPrintReference) then
           FOnPrintReference(Self, S);
       end;
@@ -653,6 +766,21 @@ begin
       end;
     Ord(TPrintType.PRINTLN_EMBEDDING), Ord(TPrintType.PRINTLN_RANKING):
       FMiscResult := S;
+    Ord(TPrintType.PRINTLN_MODEL_INFO):
+      FModelInfo := S;
+    Ord(TPrintType.PRINT_THOUGHT_CHUNK):
+      begin
+        FThinking := True;
+        FThoughtAcc := FThoughtAcc + S;
+        if Assigned(FOnThoughtChunk) then
+          FOnThoughtChunk(Self, S);
+      end;
+    Ord(TPrintType.PRINT_EVT_THOUGHT_COMPLETED):
+      begin
+        FThinking := False;
+        if Assigned(FOnThoughtEnded) then
+          FOnThoughtEnded(Self);
+      end;
   end;
 end;
 
@@ -665,6 +793,11 @@ begin
   FMiscResult := '';
 
   TThreadedQATask.Create(Self, AQustion, AAnswer).Start(QARankingEnd);
+end;
+
+function TChatLLM.RAGSelectStore(const AName: string): Integer;
+begin
+  Result := ChatLLMRAGSelectStore(FObj, PAnsiChar(UTF8Encode(AName)));
 end;
 
 procedure TChatLLM.Restart(ASysPrompt: string);
@@ -680,6 +813,16 @@ end;
 procedure TChatLLM.SetAIPrefix(const Value: string);
 begin
   ChatLLMSetAIPrefix(FObj, PAnsiChar(UTF8Encode(Value)));
+end;
+
+procedure TChatLLM.InternalChunk(S: string);
+begin
+
+end;
+
+procedure TChatLLM.DoBeforeChat;
+begin
+
 end;
 
 procedure TChatLLM.SetBusy(AValue: Boolean);
@@ -777,9 +920,16 @@ begin
   SetBusy(False);
 end;
 
+procedure TChatLLM.CallChatEnd(AState: Integer);
+begin
+  FCallingMode := False;
+  FCallResult(Self, FOutputAcc);
+  SetBusy(False);
+end;
+
 procedure TChatLLM.TextEmbeddingEnd(AState: Integer);
 var
-  A: array of Single;
+  A: array of Single = nil;
 {$ifdef dcc}
   L: TArray<string>;
 {$else}
@@ -790,7 +940,7 @@ begin
   SetBusy(False);
   if not Assigned(FOnTextEmbeddingResult) then Exit;
 
-  L := FMiscResult.Split([',', ' ']);
+  L := FMiscResult.Split([',', ' ', #10, #13], TStringSplitOptions.ExcludeEmpty);
   SetLength(A, Length(L));
   for I := 0 to Length(L) - 1 do
   begin
@@ -812,7 +962,7 @@ begin
   Result := ChatLLMStart(FObj, @_LLMPrint, @_LLMEnd, Self);
 end;
 
-function TChatLLM.TextEmbedding(const AText: string): Integer;
+function TChatLLM.TextEmbedding(const AText: string; const APurpose: TEmbeddingPurpose): Integer;
 begin
   if Busy then Exit(-1);
 
@@ -820,7 +970,7 @@ begin
   SetBusy(True);
   FMiscResult := '';
 
-  TThreadedEmbeddingTask.Create(Self, AText).Start(TextEmbeddingEnd);
+  TThreadedEmbeddingTask.Create(Self, AText, APurpose).Start(TextEmbeddingEnd);
 end;
 
 function TChatLLM.ToolCompletion(const AInput: string): Integer;

@@ -10,9 +10,7 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, LazUnitMain, UnitTools, superobject, LibChatLLM, lazcontrols,
-  MarkdownProcessor
-  { you can add units after this };
+  Forms, LazUnitMain, UnitTools, superobject, LibChatLLM, lazcontrols;
 
 {$R *.res}
 

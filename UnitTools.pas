@@ -7,7 +7,7 @@ interface
 uses
   Types, Classes, Graphics, SysUtils, Windows, Dialogs, Forms, ExtCtrls, StdCtrls,
   Clipbrd, Controls,
-  MarkdownProcessor, superobject, LibChatLLM,
+  superobject, LibChatLLM,
 {$if defined(dcc)}
   System.Generics.Collections, System.IOUtils, System.UITypes,
   System.NetEncoding, System.Threading
@@ -23,11 +23,14 @@ const
   CARD_SHOW     = 3;
 
 type
-  TWritingActionType = (watPrepend, watReplace, watAppend, watShow, watClipboard);
+  TWritingActionType = (watPrepend, watReplace, watAppend, watShow, watClipboard, watChat);
+
+  { TWritingAction }
 
   TWritingAction = class
   private
     FActionType: TWritingActionType;
+    FFeelsLucky: Boolean;
     FOriginalActionType: TWritingActionType;
     FExtractCode: Boolean;
     FSysPrompt: string;
@@ -38,6 +41,7 @@ type
     FAIPrefix: string;
     FAISuffix: string;
     FLLMName: string;
+    FWebApp: string;
   public
     constructor Create(O: ISuperObject);
 
@@ -51,6 +55,8 @@ type
     property Prompt: string read FPrompt write FPrompt;
     property OriginalPrompt: string read FOriginalPrompt;
     property LLMName: string read FLLMName;
+    property FeelsLucky: Boolean read FFeelsLucky;
+    property WebApp: string read FWebApp;
   end;
 
   TThemeBackground = record
@@ -98,6 +104,8 @@ type
     destructor Destroy; override;
   end;
 
+  { TWritingProfile }
+
   TWritingProfile = class
   private
     FName: string;
@@ -121,7 +129,7 @@ type
     constructor Create(AHandle: HWND; AFileName: string); overload;
     destructor Destroy; override;
 
-    procedure LoadLLM(OnLLMPrint: TLLMPrintEvent; OnLLMStateChanged: TLLMStateChangedEvent);
+    procedure LoadLLM(OnLLMPrint: TLLMPrintEvent; OnLLMThought: TLLMPrintEvent; OnLLMStateChanged: TLLMStateChangedEvent);
 
     property Name: string read FName;
     property Title: string read FTitle;
@@ -140,10 +148,13 @@ type
   end;
 
   IWritingToolsUI = interface
-    procedure ShowChat;
+    procedure ClearChatHistory;
     procedure ShowPage(Id: Integer);
-    procedure UpdateAIMemo(L: string);
+    procedure ChatAddUserInput(L: string);
+    procedure AppendAIChunk(L: string);
+    procedure AppendAIThoughChunk(L: string);
     procedure ShowStatus(Msg: string);
+    procedure WebAppDiff(A, B: string);
     procedure LLMStateChanged(Sender: TObject; ABusy: Boolean);
     procedure LLMLoaded;
   end;
@@ -153,43 +164,41 @@ type
   TWritingTools = class
   private
     FProfile: TWritingProfile;
-    FMdProcessor: TMarkdownProcessor;
-    FTemplate1: string;
-    FTemplate2: string;
     FForm: TCustomForm;
     FUI: IWritingToolsUI;
     FActiveCardIndex: Integer;
     FContext: string;
-    FOutputAcc: string;
-    FOutputLinesAcc: TArray<string>;
     FCurAction: TWritingAction;
     FCurLLM: TChatLLM;
     FClipboardBackup: string;
     FChatMode: Boolean;
-    FChatHistory: string;
-
+    FButtonRedo: TButton;
+    FButtonAccept: TButton;
+    FButtonClear: TButton;
     procedure SetActiveCardIndex(const Value: Integer);
+    procedure SetButtonAccept(AValue: TButton);
+    procedure SetButtonClear(AValue: TButton);
+    procedure SetButtonRedo(AValue: TButton);
     property ActiveCardIndex: Integer read FActiveCardIndex write SetActiveCardIndex;
     procedure PrepareChat;
 
     procedure ChatAddUserInput(S: string);
     procedure CompleteAction;
-    function FormatUserInput(const S: string): string;
-    function FormatAIOutput(const S: string): string;
-    procedure SaveBotOutput;
 
     procedure LLMChunk(Sender: TObject; S: string);
+    procedure LLMThoughtChunk(Sender: TObject; S: string);
     procedure LLMStateChanged(Sender: TObject; ABusy: Boolean);
 
-    function TemplateQuote(S: string): string;
     procedure LLMLoaded;
 
+    procedure ButtonClearClick(Sender: TObject);
+    procedure ButtonAcceptClick(Sender: TObject);
+    procedure ButtonRedoClick(Sender: TObject);
   public
 
     EditCustomPrompt: TCustomEdit;
 
     procedure EditCustomPromptKeyPress(Sender: TObject; var Key: Char);
-    procedure ButtonClearClick(Sender: TObject);
 
     procedure DoAction(Id: Integer);
   public
@@ -203,24 +212,57 @@ type
 
     procedure AbortGeneration;
 
-    function RenderChat: string;
-
     property Profile: TWritingProfile read FProfile;
+    property ButtonRedo: TButton write SetButtonRedo;
+    property ButtonAccept: TButton write SetButtonAccept;
+    property ButtonClear: TButton write SetButtonClear;
   end;
 
 function ParseActionType(S: string; var T: TWritingActionType): Boolean;
 function ParseActionTypeDef(S: string; Def: TWritingActionType = watReplace): TWritingActionType;
+function IsEditingActionType(T: TWritingActionType): Boolean;
 
 procedure SimulateCopy(KeyConfig: THotkeyConfig);
 procedure SimulatePaste(KeyConfig: THotkeyConfig);
 
 function SafeGetClipboard(var S: string; Retry: Integer = 10): Boolean;
+function EscapeCString(const S: string): string;
 
 implementation
 
 {$ifndef dcc}
 function GetClipboardSequenceNumber: DWORD; external user32 name 'GetClipboardSequenceNumber';
 {$endif}
+
+function EscapeCString(const S: string): string;
+var
+  I: Integer;
+  J: Integer;
+begin
+  J := 1;
+  Result := '';
+  for I := 1 to Length(S) do
+  begin
+    case S[I] of
+    '\', '"':
+      begin
+        Result := Result + Copy(S, J, I - J) + '\';
+        J := I;
+      end;
+    #10:
+      begin
+        Result := Result + Copy(S, J, I - J) + '\n';
+        J := I + 1;
+      end;
+    #13:
+      begin
+        Result := Result + Copy(S, J, I - J) + '\r';
+        J := I + 1;
+      end;
+    end;
+  end;
+  Result := Result + Copy(S, J, Length(S) + 1 - J);
+end;
 
 procedure WriteToUTF8TextFile(FN: string; Content: WideString);
 var
@@ -387,6 +429,11 @@ begin
   else;
 end;
 
+function IsEditingActionType(T: TWritingActionType): Boolean;
+begin
+  Result := T in [watPrepend, watReplace, watAppend, watClipboard];
+end;
+
 { TWritingProfile }
 
 constructor TWritingProfile.Create(AHandle: HWND; AFileName: string);
@@ -491,7 +538,7 @@ begin
 end;
 
 procedure TWritingProfile.LoadLLM(OnLLMPrint: TLLMPrintEvent;
-  OnLLMStateChanged: TLLMStateChangedEvent);
+  OnLLMThought: TLLMPrintEvent; OnLLMStateChanged: TLLMStateChangedEvent);
 var
   LLM: TPair<string, TLLMContext>;
 begin
@@ -501,6 +548,7 @@ begin
     if LLM.Value.Status = 0 then
     begin
       LLM.Value.LLM.OnChunk := OnLLMPrint;
+      LLM.Value.LLM.OnThoughtChunk := OnLLMThought;
       LLM.Value.LLM.OnStateChanged := OnLLMStateChanged;
     end;
   end;
@@ -532,6 +580,8 @@ begin
   FOriginalActionType := FActionType;
   FAIPrefix := string(O.S['ai_prefix']);
   FAISuffix := string(O.S['ai_suffix']);
+  FFeelsLucky := O.B['feels_lucky'];
+  FWebApp     := O.S['web_app'];
 
   S := string(O.S['accelerator']);
   if Length(S) = 1 then
@@ -657,14 +707,40 @@ end;
 
 procedure TWritingTools.ButtonClearClick(Sender: TObject);
 begin
-  FChatHistory := '';
-  FOutputAcc   := '';
-  FUI.ShowChat;
+  if FChatMode then
+  begin
+    FCurLLM.Restart(FProfile.FQuickChatAction.SysPrompt);
+  end;
+  FUI.ClearChatHistory;
+end;
+
+procedure TWritingTools.ButtonAcceptClick(Sender: TObject);
+begin
+  if Assigned(FCurAction) then
+  begin
+    CompleteAction;
+    FCurAction := nil;
+  end;
+end;
+
+procedure TWritingTools.ButtonRedoClick(Sender: TObject);
+var
+  S: string;
+begin
+  FUI.ClearChatHistory;
+  if not Assigned(FCurLLM) then Exit;
+  if not Assigned(FCurAction) then Exit;
+  FCurLLM.Restart(FCurAction.SysPrompt);
+  FCurLLM.AIPrefix := FCurAction.FAIPrefix;
+  FCurLLM.AutoAbortSufffix := FCurAction.FAISuffix;
+  S := FCurAction.Prompt;
+  S := S.Replace('{context}', FContext);
+  FCurLLM.Chat(S);
 end;
 
 procedure TWritingTools.ChatAddUserInput(S: string);
 begin
-  FChatHistory := FChatHistory + FormatUserInput(S);
+  FUI.ChatAddUserInput(S);
 end;
 
 procedure TWritingTools.CompleteAction;
@@ -673,7 +749,7 @@ const
 var
   Combined: string;
 begin
-  if FOutputAcc.IndexOf(ERR_MSG) >= 0 then
+  if FCurLLM.OutputAcc.IndexOf(ERR_MSG) >= 0 then
   begin
     SafeSetClipboard(FClipboardBackup);
     Exit;
@@ -687,15 +763,15 @@ begin
 
   if FCurAction.ActionType = watClipboard then
   begin
-    SafeSetClipboard(FOutputAcc);
+    SafeSetClipboard(FCurLLM.OutputAcc);
     FForm.Hide;
     Exit;
   end;
 
   case FCurAction.ActionType of
-    watPrepend: Combined := FOutputAcc.TrimRight + #13#10 + FContext; // Windows!
-    watReplace: Combined := FOutputAcc;
-    watAppend: Combined := FContext.TrimRight + #13#10 + FOutputAcc;
+    watPrepend: Combined := FCurLLM.OutputAcc.TrimRight + #13#10 + FContext; // Windows!
+    watReplace: Combined := FCurLLM.OutputAcc.Trim;
+    watAppend: Combined := FContext.TrimRight + #13#10 + FCurLLM.OutputAcc;
   end;
 
   SafeSetClipboard(Combined);
@@ -707,22 +783,9 @@ begin
 end;
 
 constructor TWritingTools.Create(AForm: TCustomForm; AUI: IWritingToolsUI; ProfileFn: string);
-var
-  P: string;
 begin
   FUI := AUI;
   FForm := AForm;
-  P := ExtractFilePath(Application.ExeName);
-  if FileExists(P + 'data/p1.html') then
-  begin
-    FTemplate1 := ReadFullUTF8TextFile(P + 'data/p1.html');
-    FTemplate2 := ReadFullUTF8TextFile(P + 'data/p2.html');
-  end
-  else begin
-    FTemplate1 := ReadFullUTF8TextFile(P + '../../data/p1.html');
-    FTemplate2 := ReadFullUTF8TextFile(P + '../../data/p2.html');
-  end;
-  FMdProcessor := TMarkdownProcessor.CreateDialect(mdCommonMark);
   FProfile := TWritingProfile.Create(AForm.Handle, ProfileFn);
 
   FForm.Width := FProfile.UIConfig.Width;
@@ -739,7 +802,6 @@ begin
     FProfile.UIConfig.Height := FForm.Height;
   end;
   FProfile.Free;
-  FMdProcessor.Free;
   inherited;
 end;
 
@@ -750,8 +812,6 @@ begin
   FChatMode := False;
   if FContext = '' then Exit;
 
-  FOutputAcc := '';
-
   FCurAction := FProfile.Action[Id];
   FCurLLM := FProfile.LLM[FCurAction];
   if not Assigned(FCurLLM) then
@@ -759,16 +819,15 @@ begin
     FUI.ShowStatus('Unavailable');
     Exit;
   end;
-  if FCurAction.ActionType = watShow then
+  if (FCurAction.ActionType = watShow) or (not FCurAction.FeelsLucky) then
   begin
-    FUI.ShowPage(CARD_SHOW);
-  end;
-  FCurLLM.Restart(FCurAction.SysPrompt);
-  FCurLLM.AIPrefix := FCurAction.FAIPrefix;
-  FCurLLM.AutoAbortSufffix := FCurAction.FAISuffix;
-  S := FCurAction.Prompt;
-  S := S.Replace('{context}', FContext);
-  FCurLLM.Chat(S);
+    ActiveCardIndex := CARD_SHOW;
+    FButtonAccept.Visible := (not FCurAction.FeelsLucky) and IsEditingActionType(FCurAction.ActionType);
+    FButtonRedo.Visible   := not FCurAction.FeelsLucky;
+  end
+  else
+    ActiveCardIndex := CARD_RUNNING;
+  FButtonRedo.Click;
 end;
 
 procedure TWritingTools.EditCustomPromptKeyPress(Sender: TObject;
@@ -781,7 +840,6 @@ var
   begin
     PrepareChat;
     ChatAddUserInput(Prompt);
-    FOutputAcc := '';
 
     FCurLLM := FProfile.LLM[FProfile.FQuickChatAction];
     if not Assigned(FCurLLM) then
@@ -825,7 +883,6 @@ var
         FContext := '';
         FUI.ShowStatus('Quick chat');
         Delete(Prompt, 1, I);
-        FOutputAcc := '';
         QuickChat;
         Exit;
       end;
@@ -859,69 +916,80 @@ begin
   end;
 end;
 
-function TWritingTools.FormatAIOutput(const S: string): string;
-begin
-  if S = '' then Exit('');
-
-  Result := Format('<div class="message_container message_bot">' +
-  '<div class="avatar_container avatar_bot"><div class="avatar_icon_bot"></div></div>' +
-  '<div class="message">%s</div></div>', [FMdProcessor.Process(S)]);
-end;
-
-function TWritingTools.FormatUserInput(const S: string): string;
-begin
-  if S = '' then Exit('');
-
-  Result := Format('<div class="message_container message_user">' +
-  '<div class="avatar_container avatar_user"><div class="avatar_icon_user"></div></div>' +
-  '<div class="message">%s</div>' +
-  '</div>', [FMdProcessor.Process(S)]);
-end;
-
 procedure TWritingTools.LLMChunk(Sender: TObject; S: string);
 var
-  html: string;
+  Lines: TArray<string>;
 begin
-  FOutputAcc := FOutputAcc + S;
-  FOutputLinesAcc := FOutputAcc.Split([#13, #10]);
+  if S = '' then Exit;
+
+  Lines := FCurLLM.OutputAcc.Split([#13, #10]);
+  FUI.ShowStatus(Lines[High(Lines)]);
 
   if FChatMode then
   begin
-    FUI.ShowChat;
+    FUI.AppendAIChunk(S);
     Exit;
   end;
 
-  if Assigned(FCurAction) and (FCurAction.ActionType = watShow) then
+  if Assigned(FCurAction) and (ActiveCardIndex >= CARD_SHOW) then
   begin
-    ActiveCardIndex := CARD_SHOW;
-    html := FMdProcessor.process(FOutputAcc);
-    FUI.UpdateAIMemo(TemplateQuote(html));
+    FUI.AppendAIChunk(S);
+    Exit;
+  end;
+end;
+
+procedure TWritingTools.LLMThoughtChunk(Sender: TObject; S: string);
+var
+  Lines: TArray<string>;
+begin
+  if S = '' then Exit;
+
+  Lines := FCurLLM.ThoughtAcc.Split([#13, #10]);
+  FUI.ShowStatus(Lines[High(Lines)]);
+
+  if FChatMode then
+  begin
+    FUI.AppendAIThoughChunk(S);
     Exit;
   end;
 
-  FUI.ShowStatus(FOutputLinesAcc[High(FOutputLinesAcc)]);
+  if Assigned(FCurAction) and (ActiveCardIndex >= CARD_SHOW) then
+  begin
+    FUI.AppendAIThoughChunk(S);
+    Exit;
+  end;
 end;
 
 procedure TWritingTools.LLMStateChanged(Sender: TObject; ABusy: Boolean);
 begin
-  if ABusy and (FActiveCardIndex = CARD_MAIN) then
-    ActiveCardIndex := CARD_RUNNING;
-  if (not ABusy) and (ActiveCardIndex = CARD_RUNNING) then
-    ActiveCardIndex := CARD_MAIN;
+  FButtonAccept.Enabled := not ABusy;
+  FButtonClear.Enabled  := not ABusy;
+  FButtonRedo.Enabled   := not ABusy;
 
   EditCustomPrompt.Enabled := not ABusy;
   if (not ABusy) and Assigned(FCurAction) then
   begin
-    CompleteAction;
-    FCurAction := nil;
+    case ActiveCardIndex of
+      CARD_RUNNING: FButtonAccept.Click;
+      CARD_SHOW:
+        begin
+          if not FButtonRedo.Visible then
+          begin
+            FButtonAccept.Click;
+          end
+          else begin
+            if  FCurAction.WebApp ='diff' then
+              FUI.WebAppDiff(FContext, FCurLLM.OutputAcc.Trim)
+            else;
+          end;
+        end;
+    end;
   end;
 
   if FChatMode then
   begin
-
     if not ABusy then
     begin
-      SaveBotOutput;
       EditCustomPrompt.SetFocus;
     end;
   end;
@@ -932,18 +1000,7 @@ end;
 procedure TWritingTools.PrepareChat;
 begin
   ActiveCardIndex := CARD_CHAT;
-end;
-
-function TWritingTools.RenderChat: string;
-begin
-  Result := TemplateQuote(FChatHistory + FormatAIOutput(FOutputAcc));
-end;
-
-procedure TWritingTools.SaveBotOutput;
-begin
-  if Length(FOutputAcc) < 1 then Exit;
-
-  FChatHistory := FChatHistory + FormatAIOutput(FOutputAcc);
+  FButtonClear.Visible  := True;
 end;
 
 procedure TWritingTools.SetActiveCardIndex(const Value: Integer);
@@ -952,13 +1009,34 @@ begin
   FUI.ShowPage(Value);
 end;
 
+procedure TWritingTools.SetButtonAccept(AValue: TButton);
+begin
+  FButtonAccept := AValue;
+  FButtonAccept.OnClick := ButtonAcceptClick;
+  FButtonAccept.Visible := False;
+end;
+
+procedure TWritingTools.SetButtonClear(AValue: TButton);
+begin
+  FButtonClear := AValue;
+  FButtonClear.OnClick := ButtonClearClick;
+  FButtonClear.Visible := False;
+end;
+
+procedure TWritingTools.SetButtonRedo(AValue: TButton);
+begin
+  FButtonRedo := AValue;
+  FButtonRedo.OnClick := ButtonRedoClick;
+  FButtonRedo.Visible := False;
+end;
+
 {$ifndef dcc}
 function _RunThreadedTask(Parameter : Pointer): IntPtr;
 var
   O: TWritingTools;
 begin
   O := TWritingTools(Parameter);
-  O.FProfile.LoadLLM(O.LLMChunk, O.LLMStateChanged);
+  O.FProfile.LoadLLM(O.LLMChunk, O.LLMThoughtChunk, O.LLMStateChanged);
   TThread.Synchronize(nil, O.LLMLoaded);
   Result := 0;
 end;
@@ -977,11 +1055,6 @@ begin
 {$else}
   BeginThread(_RunThreadedTask, Self);
 {$endif}
-end;
-
-function TWritingTools.TemplateQuote(S: string): string;
-begin
-  Result := FTemplate1 + S + FTemplate2;
 end;
 
 procedure TWritingTools.LLMLoaded;
@@ -1005,7 +1078,10 @@ var
   Monitor: TMonitor;
 begin
   EditCustomPrompt.Text := '';
-  ActiveCardIndex := 0;
+  ActiveCardIndex := CARD_MAIN;
+  FButtonAccept.Visible := False;
+  FButtonClear.Visible := False;
+  FButtonRedo.Visible := False;
   if not SafeGetClipboard(FClipboardBackup, 1) then Exit;
 
   FContext := '';
@@ -1027,8 +1103,6 @@ begin
     FUI.ShowStatus('(Empty) Go quick chat.')
   else
     FUI.ShowStatus(FContext);
-
-  FOutputAcc := '';
 
   Monitor := Screen.MonitorFromPoint(TPoint.Create(Mouse.CursorPos.X, Mouse.CursorPos.Y));
   if Mouse.CursorPos.X + MARGIN + FForm.Width < Monitor.Left + Monitor.Width then
