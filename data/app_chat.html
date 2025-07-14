@@ -83,6 +83,17 @@
                 display: inline-block;
                 vertical-align: top;
             }
+
+            .row {
+                display: flex;
+            }
+
+            .column {
+                flex: 50%;
+                padding: 1%;
+                border-right-style: solid;
+                border-left-style: solid;
+            }
         </style>
     </head>
 
@@ -138,8 +149,6 @@
             }
 
             function render_main() {
-                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
-
                 render_markdown(g_md_src, ai_container);
                 Prism.highlightAllUnder(ai_container);
 
@@ -148,14 +157,11 @@
                         .catch(err => console.warn(`MathJax processing error for ${sender} message:`, err));
                 }
                 g_mermaid.initialize();
-
-                // Only scroll if user was already at bottom
-                if (isAtBottom) {
-                    window.scrollTo(0, document.body.scrollHeight);
-                }
             }
 
             function ai_append_thought_chunk(chunk) {
+                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
+
                 prepare_for_ai_turn();
                 if (!is_thinking) {
                     is_thinking = true;
@@ -165,9 +171,15 @@
                 }
                 g_thought_src += chunk;
                 render_throught();
+
+                if (isAtBottom) {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
             }
 
             function ai_append_chunk(chunk) {
+                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
+
                 prepare_for_ai_turn();
                 if (is_thinking) {
                     is_thinking = false;
@@ -175,6 +187,10 @@
                 }
                 g_md_src += chunk;
                 render_main();
+
+                if (isAtBottom) {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
             }
 
             function ai_done() {
@@ -230,6 +246,8 @@
             }
 
             function append_user_input(input) {
+                const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 50;
+
                 if (is_ai_turn) {
                     ai_done()
                 }
@@ -243,41 +261,59 @@
 
                 let msg     = document.getElementById('#message-' + round_id);
                 msg.innerText = input;
+
+                if (isAtBottom) {
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
             }
 
             function app_diff(one, other) {
                 reset();
-                var color = '',
-                    span = null;
 
                 var diff = Diff.diffChars(one, other);
-                var fragment = document.createElement("div");
-
-                diff.forEach(function(part){
-                    // green for additions, red for deletions
-                    // grey for common parts
-                    color = part.added ? 'green' :
-                        part.removed ? 'red' : 'grey';
-                    span = document.createElement('span');
-                    span.style.color = color;
-                    span.appendChild(document
-                        .createTextNode(part.value));
-                    fragment.appendChild(span);
-                    });
 
                 let div_one = document.createElement("div");
-                div_one.className = "diff_container";
-                div_one.innerText = one;
-
-                let div_other = document.createElement("div");
-                div_other.className = "diff_container";
-                div_other.innerText = other;
-
-                fragment.className = "diff_container";
-
+                div_one.className = "message_container message_user row";
+                div_one.innerHTML = '<div class="column" id="#col_left"></div><div class="column" id="#col_right"></div>';
                 chat_container.appendChild(div_one);
-                chat_container.appendChild(div_other);
-                chat_container.appendChild(fragment);
+
+                let left  = document.getElementById("#col_left");
+                let right = document.getElementById("#col_right");
+
+                let add_diff_span_to = function (owner, type, txt) {
+                    let span = document.createElement('span');
+                    span.appendChild(document
+                        .createTextNode(txt));
+                    if (type == 'added') {
+                        span.style.color = 'green';
+                        span.style.background = 'lightgreen';
+                    } else if (type == 'removed') {
+                        span.style.color = 'red';
+                        span.style.background = '#fbb';
+                    } else {
+                        span.style.color = 'grey';
+                    }
+
+                    owner.appendChild(span);
+                }
+
+                diff.forEach(function (part) {
+                    if (part.added) {
+                        add_diff_span_to(right, 'added', part.value);
+                    } else if (part.removed) {
+                        add_diff_span_to(left, 'removed', part.value);
+                    }
+                    else {
+                        add_diff_span_to(left,  'kept', part.value);
+                        add_diff_span_to(right, 'kept', part.value);
+                    }
+                });
+
+                var fragment = document.createElement("div");
+                fragment.className = "diff_container";
+                fragment.innerText = other;
+
+                //chat_container.appendChild(fragment);
             }
         </script>
 

@@ -42,7 +42,7 @@ object MainForm: TMainForm
         AlignWithMargins = True
         Left = 3
         Top = 3
-        Width = 393
+        Width = 366
         Height = 21
         Align = alClient
         Caption = 'LabelStatus'
@@ -70,15 +70,48 @@ object MainForm: TMainForm
       end
       object ButtonClear: TButton
         AlignWithMargins = True
-        Left = 402
+        Left = 447
         Top = 3
-        Width = 75
+        Width = 30
         Height = 21
+        Hint = 'Clear'
         Align = alRight
-        Caption = 'Clear'
+        Caption = #8709
+        ParentShowHint = False
+        ShowHint = True
         TabOrder = 1
         Visible = False
-        ExplicitLeft = 400
+        ExplicitLeft = 445
+      end
+      object ButtonRedo: TButton
+        AlignWithMargins = True
+        Left = 375
+        Top = 3
+        Width = 30
+        Height = 21
+        Hint = 'Redo'
+        Align = alRight
+        Caption = #8635
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 2
+        Visible = False
+        ExplicitLeft = 373
+      end
+      object ButtonAccept: TButton
+        AlignWithMargins = True
+        Left = 411
+        Top = 3
+        Width = 30
+        Height = 21
+        Hint = 'Accept'
+        Align = alRight
+        Caption = #10003
+        ParentShowHint = False
+        ShowHint = True
+        TabOrder = 3
+        Visible = False
+        ExplicitLeft = 409
       end
     end
   end
@@ -174,7 +207,7 @@ object MainForm: TMainForm
       TabOrder = 2
       ExplicitWidth = 472
       ExplicitHeight = 222
-      object BrowserForChat: TEdgeBrowser
+      object PageBrowser: TEdgeBrowser
         Left = 0
         Top = 0
         Width = 474
@@ -186,26 +219,6 @@ object MainForm: TMainForm
         UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
         ExplicitWidth = 472
         ExplicitHeight = 222
-      end
-    end
-    object Card4: TCard
-      Left = 0
-      Top = 0
-      Width = 474
-      Height = 230
-      Caption = 'Card4'
-      CardIndex = 3
-      TabOrder = 3
-      object BrowserForShow: TEdgeBrowser
-        Left = 0
-        Top = 0
-        Width = 474
-        Height = 230
-        Align = alClient
-        TabOrder = 0
-        AllowSingleSignOnUsingOSPrimaryAccount = False
-        TargetCompatibleBrowserVersion = '117.0.2045.28'
-        UserDataFolder = '%LOCALAPPDATA%\bds.exe.WebView2'
       end
     end
   end

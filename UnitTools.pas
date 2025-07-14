@@ -141,12 +141,6 @@ type
 
   end;
 
-  TCallJs = record
-    ParamNum: Integer;
-    FunName: string;
-    Param: string;
-  end;
-
   IWritingToolsUI = interface
     procedure ClearChatHistory;
     procedure ShowPage(Id: Integer);
@@ -289,6 +283,7 @@ var
   S: Int64;
 begin
   F := nil;
+  A := '';
   try
     F := TFileStream.Create(Fn, fmOpenRead or fmShareDenyNone);
     S := F.Size;
@@ -806,10 +801,7 @@ begin
 end;
 
 procedure TWritingTools.DoAction(Id: Integer);
-var
-  S: string;
 begin
-  FChatMode := False;
   if FContext = '' then Exit;
 
   FCurAction := FProfile.Action[Id];
@@ -838,7 +830,8 @@ var
 
   procedure QuickChat;
   begin
-    PrepareChat;
+    if not FChatMode then
+      PrepareChat;
     ChatAddUserInput(Prompt);
 
     FCurLLM := FProfile.LLM[FProfile.FQuickChatAction];
@@ -1048,7 +1041,7 @@ begin
   var T := TTask.Create(
     procedure
     begin
-      FProfile.LoadLLM(LLMChunk, LLMStateChanged);
+      FProfile.LoadLLM(LLMChunk, LLMThoughtChunk, LLMStateChanged);
       TThread.Synchronize(TThread.Current, LLMLoaded);
     end);
   T.Start;
@@ -1077,6 +1070,7 @@ var
   W1, W2: DWORD;
   Monitor: TMonitor;
 begin
+  FChatMode := False;
   EditCustomPrompt.Text := '';
   ActiveCardIndex := CARD_MAIN;
   FButtonAccept.Visible := False;

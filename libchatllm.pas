@@ -929,7 +929,7 @@ end;
 
 procedure TChatLLM.TextEmbeddingEnd(AState: Integer);
 var
-  A: array of Single = nil;
+  A: array of Single;
 {$ifdef dcc}
   L: TArray<string>;
 {$else}

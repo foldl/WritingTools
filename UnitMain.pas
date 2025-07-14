@@ -10,32 +10,31 @@ uses
   System.NetEncoding,
   Vcl.Menus, Clipbrd, Vcl.ControlList, Vcl.ComCtrls, GraphUtil, superobject, Generics.Collections,
   LibChatLLM, Vcl.WinXPanels, Winapi.WebView2, Winapi.ActiveX, Vcl.Edge,
-  MarkdownProcessor, System.Actions, Vcl.ActnList, UnitTools;
+  System.Actions, Vcl.ActnList, UnitTools;
 
 type
 
   TEdgeBrowserUpdater = class(TComponent)
   private
     FView: TEdgeBrowser;
-    FFifo: TQueue<TCallJs>;
     FTimer: TTimer;
+    FPendedCall: TStringList;
     FHtml: string;
-    FHtmlPending: Boolean;
+    FLastFilePath: string;
     procedure BrowserNavCompleted(Sender: TCustomEdgeBrowser; IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
     procedure ScriptExecuted(Sender: TCustomEdgeBrowser; AResult: HResult; const AResultObjectAsJson: string);
-    procedure SetBrowser(const Value: TEdgeBrowser; InitialURL: string = 'about:blank');
-    procedure DoCall;
-    procedure CallJS(FunName, Param: string); overload;
-    procedure CallJS(FunName: string); overload;
+    procedure DoCallJs(const S: string);
+    procedure CallPendingJs;
     procedure TimerTimer(Sender: TObject);
     function GetBusy: Boolean;
+    procedure DoSetPage(const html: string);
   public
     constructor Create(AOwner: TComponent; View: TEdgeBrowser; InitialURL: string = 'about:blank'); reintroduce; overload;
 
-    procedure ClearContentAll;
-    procedure SetContentAll(Content: string);
-
-    procedure SetPage(const html: string);
+    procedure ResetContent(const FilePath: string = '');
+    procedure CallJSFun(const FunName, AParam1, AParam2: string); overload;
+    procedure CallJSFun(const FunName, AParam: string); overload;
+    procedure CallJSFun(const ALine: string); overload;
 
     destructor Destroy; override;
     property Browser: TEdgeBrowser read FView;
@@ -58,14 +57,14 @@ type
     About1: TMenuItem;
     N1: TMenuItem;
     Card3: TCard;
-    Card4: TCard;
     ActivityIndicator: TProgressBar;
-    BrowserForShow: TEdgeBrowser;
     ActionList1: TActionList;
     ActionAbortGeneration: TAction;
     ActionHide: TAction;
-    BrowserForChat: TEdgeBrowser;
+    PageBrowser: TEdgeBrowser;
     ButtonClear: TButton;
+    ButtonRedo: TButton;
+    ButtonAccept: TButton;
     procedure Exit1Click(Sender: TObject);
     procedure Hide1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -76,19 +75,29 @@ type
     procedure ActionAbortGenerationExecute(Sender: TObject);
     procedure ActionHideExecute(Sender: TObject);
   private
+    procedure SetCurrentApp(AValue: string);
+  private
     FWritingTools: TWritingTools;
-    FUpdaterShow: TEdgeBrowserUpdater;
-    FUpdaterChat: TEdgeBrowserUpdater;
+    FBrowserUpdater: TEdgeBrowserUpdater;
+    FActButtons: array of TButton;
+    FActivePageId: Integer;
+    FAppChat: string;
+    FChunkAcc: string;
+    FIsThought: Boolean;
+    procedure FlushAIChunks;
     procedure ActionButtonClick(Sender: TObject);
     procedure WMHotKey(var Msg: TWMHotKey); message WM_HOTKEY;
     procedure ShowPage(Id: Integer);
-    procedure UpdateAIMemo(L: string);
+    procedure WebAppDiff(A, B: string);
+    procedure AppendAIChunk(L: string);
+    procedure AppendAIThoughChunk(L: string);
+    procedure ChatAddUserInput(L: string);
     procedure ShowStatus(Msg: string);
     procedure LLMStateChanged(Sender: TObject; ABusy: Boolean);
     procedure LLMLoaded;
-  private
     procedure ShowChat;
-  public
+    procedure ClearChatHistory;
+    property  CurrentApp: string write SetCurrentApp;
   end;
 
 var
@@ -119,13 +128,60 @@ end;
 
 procedure TMainForm.ActionHideExecute(Sender: TObject);
 begin
-  FUpdaterShow.SetPage('<html></html>');
   Hide;
+end;
+
+procedure TMainForm.AppendAIChunk(L: string);
+begin
+  if FIsThought then FlushAIChunks;
+  FChunkAcc := FChunkAcc + L;
+  if FBrowserUpdater.Busy then
+  begin
+    FIsThought := False;
+    Exit;
+  end;
+  FBrowserUpdater.CallJSFun('ai_append_chunk', FChunkAcc);
+  FChunkAcc := '';
+end;
+
+procedure TMainForm.AppendAIThoughChunk(L: string);
+begin
+  if not FIsThought then FlushAIChunks;
+  FChunkAcc := FChunkAcc + L;
+  if FBrowserUpdater.Busy then
+  begin
+    FIsThought := True;
+    Exit;
+  end;
+  FBrowserUpdater.CallJSFun('ai_append_thought_chunk', FChunkAcc);
+  FChunkAcc := '';
+end;
+
+procedure TMainForm.ChatAddUserInput(L: string);
+begin
+  FlushAIChunks;
+  FBrowserUpdater.CallJSFun('append_user_input', L);
+end;
+
+procedure TMainForm.ClearChatHistory;
+begin
+  FlushAIChunks;
+  FBrowserUpdater.CallJSFun('reset()');
 end;
 
 procedure TMainForm.Exit1Click(Sender: TObject);
 begin
   Close;
+end;
+
+procedure TMainForm.FlushAIChunks;
+begin
+  if FChunkAcc = '' then Exit;
+  if FIsThought then
+    FBrowserUpdater.CallJSFun('ai_append_chunk', FChunkAcc)
+  else
+    FBrowserUpdater.CallJSFun('ai_append_thought_chunk', FChunkAcc);
+  FChunkAcc := '';
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -135,6 +191,12 @@ begin
   var FN := ExtractFilePath(Application.ExeName) + 'profile.json';
   if ParamCount() > 1 then FN := ParamStr(1);
 
+  var BP: string := ExtractFilePath(Application.ExeName)  + 'data' + PathDelim;
+  if not DirectoryExists(BP) then
+    BP := ExtractFilePath(Application.ExeName) + '../../data' + PathDelim;
+
+  FAppChat := BP + 'app_chat.html';
+
   if not FileExists(FN) then
   begin
     MessageDlg(Format('profile.json not found: %s', [FN]), TMsgDlgType.mtError, [mbOK], -1);
@@ -142,8 +204,7 @@ begin
     Exit;
   end;
 
-  FUpdaterShow := TEdgeBrowserUpdater.Create(Self, BrowserForShow);
-  FUpdaterChat := TEdgeBrowserUpdater.Create(Self, BrowserForChat);
+  FBrowserUpdater := TEdgeBrowserUpdater.Create(Self, PageBrowser);
 
   CardPanel.ActiveCardIndex := CARD_MAIN;
 
@@ -151,7 +212,9 @@ begin
   FWritingTools.EditCustomPrompt := EditCustomPrompt;
 
   EditCustomPrompt.OnKeyPress := FWritingTools.EditCustomPromptKeyPress;
-  ButtonClear.OnClick         := FWritingTools.ButtonClearClick;
+  FWritingTools.ButtonAccept  := ButtonAccept;
+  FWritingTools.ButtonClear   := ButtonClear;
+  FWritingTools.ButtonRedo    := ButtonRedo;
 
   Profile := FWritingTools.Profile;
 
@@ -213,7 +276,17 @@ end;
 procedure TMainForm.LLMStateChanged(Sender: TObject; ABusy: Boolean);
 begin
   ActivityIndicator.Visible := ABusy;
-  ButtonClear.Enabled := not ABusy;
+  if not ABusy then
+    FlushAIChunks;
+end;
+
+procedure TMainForm.SetCurrentApp(AValue: string);
+begin
+  if AValue = '' then
+     AValue := 'about:blank'
+  else
+    AValue := 'file://' + AValue;
+  FBrowserUpdater.ResetContent(AValue);
 end;
 
 procedure TMainForm.Show1Click(Sender: TObject);
@@ -223,22 +296,30 @@ end;
 
 procedure TMainForm.ShowChat;
 begin
-  FUpdaterChat.SetPage(FWritingTools.RenderChat);
+  CurrentApp := FAppChat;
 end;
 
 procedure TMainForm.ShowPage(Id: Integer);
 begin
-  if CardPanel.ActiveCardIndex <> Id then
+  if FActivePageId = Id then
   begin
-    CardPanel.ActiveCardIndex := Id;
-    if Id = CARD_SHOW then
-    begin
-      //FUpdaterShow.CallJS('clearContentAll', '');
-      FUpdaterShow.SetPage('<html></html>');
-    end;
+    if PageBrowser.Visible then
+      FBrowserUpdater.ResetContent();
+    Exit;
   end;
 
-  ButtonClear.Visible := Id = CARD_CHAT;
+  FActivePageId := Id;
+  case Id of
+    CARD_MAIN: begin
+      CardPanel.ActiveCardIndex := 0;
+    end;
+    CARD_RUNNING: begin
+      CardPanel.ActiveCardIndex := 1;
+    end
+  else
+    CardPanel.ActiveCardIndex := 2;
+    CurrentApp := FAppChat;
+  end;
 end;
 
 procedure TMainForm.ShowStatus(Msg: string);
@@ -246,9 +327,9 @@ begin
   LabelStatus.Caption := Msg;
 end;
 
-procedure TMainForm.UpdateAIMemo(L: string);
+procedure TMainForm.WebAppDiff(A, B: string);
 begin
-  FUpdaterShow.SetPage(L);
+  FBrowserUpdater.CallJSFun('app_diff', A, B);
 end;
 
 procedure TMainForm.WMHotKey(var Msg: TWMHotKey);
@@ -258,75 +339,70 @@ end;
 
 { TEdgeBrowserUpdater }
 
-procedure TEdgeBrowserUpdater.CallJS(FunName, Param: string);
-var
-  Call: TCallJs;
+procedure TEdgeBrowserUpdater.CallJSFun(const ALine: string);
 begin
-  Call.ParamNum := 1;
-  Call.FunName := FunName;
-  Call.Param   := TNetEncoding.Base64.Encode(Param);
-  FFifo.Enqueue(Call);
-  DoCall;
+  if Busy then
+  begin
+    FPendedCall.Add(ALine);
+    Exit;
+  end;
+  DoCallJs(ALine);
 end;
 
-procedure TEdgeBrowserUpdater.CallJS(FunName: string);
+procedure TEdgeBrowserUpdater.CallJSFun(const FunName, AParam: string);
 var
-  Call: TCallJs;
+  S: string;
 begin
-  Call.ParamNum := 0;
-  Call.FunName := FunName;
-  FFifo.Enqueue(Call);
-  DoCall;
+  S := Format('%s("%s")', [FunName, EscapeCString(AParam)]);
+  CallJSFun(S);
 end;
 
-procedure TEdgeBrowserUpdater.ClearContentAll;
+procedure TEdgeBrowserUpdater.CallJSFun(const FunName, AParam1,
+  AParam2: string);
+var
+  S: string;
 begin
-  CallJS('clearContentAll');
+  S := Format('%s("%s", "%s")', [FunName, EscapeCString(AParam1), EscapeCString(AParam2)]);
+  CallJSFun(S);
+end;
+
+procedure TEdgeBrowserUpdater.CallPendingJs;
+var
+  S: string;
+begin
+  if FPendedCall.Count > 0 then
+  begin
+    S := FPendedCall[0];
+    FPendedCall.Delete(0);
+    DoCallJs(S);
+  end;
 end;
 
 constructor TEdgeBrowserUpdater.Create(AOwner: TComponent; View: TEdgeBrowser; InitialURL: string);
 begin
   inherited Create(AOwner);
+  FPendedCall := TStringList.Create;
   FTimer := TTimer.Create(Self);
   FTimer.Enabled := False;
-  FTimer.Interval := 1;
+  FTimer.Interval := 20;
   FTimer.OnTimer := TimerTimer;
-  FFifo := TQueue<TCallJs>.Create;
-  SetBrowser(View, InitialURL);
+  FHtml := InitialURL;
+  FView := View;
+
+  FView.OnNavigationCompleted := BrowserNavCompleted;
+  FView.Navigate(InitialURL);
 end;
 
 destructor TEdgeBrowserUpdater.Destroy;
 begin
-  FFifo.Free;
+  FPendedCall.Free;
   inherited;
 end;
 
-procedure TEdgeBrowserUpdater.DoCall;
-var
-  S: string;
+procedure TEdgeBrowserUpdater.DoCallJs(const S: string);
 begin
-  if Busy then Exit;
-  if FFifo.IsEmpty then Exit;
-
-  var call := FFifo.Dequeue;
-
-  case call.ParamNum of
-    -1: begin
-      FView.OnNavigationCompleted := BrowserNavCompleted;
-      FView.NavigateToString(call.Param);
-    end;
-    0: begin
-      S := Format('%s();', [call.FunName]);
-      FView.OnExecuteScript := ScriptExecuted;
-      FView.ExecuteScript(S);
-    end;
-    1: begin
-      S := Format('%s("%s");', [call.FunName, call.Param]);
-      FView.OnExecuteScript := ScriptExecuted;
-      FView.ExecuteScript(S);
-    end
-  end;
-
+  FView.OnExecuteScript := ScriptExecuted;
+  FView.ExecuteScript(S);
 end;
 
 function TEdgeBrowserUpdater.GetBusy: Boolean;
@@ -334,62 +410,40 @@ begin
   Result := Assigned(FView.OnExecuteScript) or Assigned(FView.OnNavigationCompleted);
 end;
 
+procedure TEdgeBrowserUpdater.ResetContent(const FilePath: string);
+begin
+  FPendedCall.Clear;
+  if FilePath = '' then
+    DoSetPage(FLastFilePath)
+  else
+    DoSetPage(FilePath);
+end;
+
 procedure TEdgeBrowserUpdater.BrowserNavCompleted(Sender: TCustomEdgeBrowser;
   IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
 begin
   FView.OnNavigationCompleted := nil;
 
-  if FHtmlPending then
-  begin
-    FHtmlPending := False;
-    FView.OnNavigationCompleted := BrowserNavCompleted;
-    FView.NavigateToString(FHtml);
-    Exit;
-  end;
-
-  FTimer.Enabled := True;
+  CallPendingJs;
 end;
 
 procedure TEdgeBrowserUpdater.ScriptExecuted(Sender: TCustomEdgeBrowser;
   AResult: HResult; const AResultObjectAsJson: string);
 begin
   FView.OnExecuteScript := nil;
-  FTimer.Enabled := True;
+  CallPendingJs;
 end;
 
-procedure TEdgeBrowserUpdater.SetBrowser(const Value: TEdgeBrowser; InitialURL: string);
+procedure TEdgeBrowserUpdater.DoSetPage(const html: string);
 begin
-  FView := Value;
-  if not Assigned(FView) then Exit;
-
+  FLastFilePath := html;
   FView.OnNavigationCompleted := BrowserNavCompleted;
-  FView.Navigate(InitialURL);
-end;
-
-procedure TEdgeBrowserUpdater.SetContentAll(Content: string);
-begin
-  CallJS('setContentAll', Content);
-end;
-
-procedure TEdgeBrowserUpdater.SetPage(const html: string);
-begin
-  if Assigned(FView.OnNavigationCompleted) then
-  begin
-    FHtmlPending := True;
-    FHtml := html;
-    Exit;
-  end;
-
-  FView.OnNavigationCompleted := BrowserNavCompleted;
-  FView.NavigateToString(html);
+  FView.Navigate(html);
 end;
 
 procedure TEdgeBrowserUpdater.TimerTimer(Sender: TObject);
 begin
   FTimer.Enabled := False;
-  DoCall;
 end;
-
-
 
 end.
