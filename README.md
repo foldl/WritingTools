@@ -1,6 +1,6 @@
 # Writing Tools
 
-https://github.com/user-attachments/assets/6a530cd7-2953-4a89-ac87-ca3b40e7b07e
+https://github.com/user-attachments/assets/e0a798a1-4482-45b0-afba-f9b512d3aa5e
 
 
 ## 🚀 What is it?
@@ -30,7 +30,7 @@ Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [De
 - **Completely free and Open-source**: Purely native. Bloat-free & uses pretty much **0% of your CPU**.
 - **Chat Mode**: Seamlessly switching between context processing mode and chat mode.
 - **Customization**: All commands are fully customizable.
-- **Markdown Rendering**: Beautiful and elegant.
+- **Markdown/Math Rendering**: Beautiful and elegant.
 
 ## ✨ Features
 
@@ -60,7 +60,7 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
 
 1. Configure your profile.
 
-   Copy `profile.json.in` to `profile.json`. Fill in the path of the quantized model file:
+   Copy `profile.json.in` to `profile.json`. Fill in the path of the quantized model file and other options (see [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp)):
 
    ```js
    {
@@ -68,7 +68,9 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
       "chatllm": {
          "default": [
             "-m",
-            "path of the quantized model file"
+            "path of the quantized model file",
+            "-ngl", "all",      // for GPU acceleration
+            "+detect-thoughts"  // detect thoughts
          ]
       },
       //...
@@ -127,6 +129,8 @@ _Actions_ are represented to users as a collection of buttons. Each action is de
    "llm": "another_one",      // optional
    "ai_prefix": "...",        // optional
    "ai_suffix": "...",        // optional
+   "feels_lucky": true,       // optional (true or false)
+   "web_app": "..."           // optional
    "action": "show"           // optional
 }
 ```
@@ -138,6 +142,11 @@ _Actions_ are represented to users as a collection of buttons. Each action is de
 * `llm` is selected LLM to serve this action (when omitted, "default" is selected).
 * `ai_prefix` is used for [generation steering](https://github.com/foldl/chatllm.cpp/blob/master/docs/fun.md#generation-steering).
 * `ai_suffix` is used abort generation: once this suffix is found in LLM's output, generation is aborted.
+* `feels_lucky` is a flag to accept the first round of LLM's output. When set to `false` (default), users can click _Redo_ button to try again.
+* `web_app` is a special field providing additional functionalities on LLM's output (when `feels_lucks` is `false`). Possible values:
+
+   -  `diff`: compare LLM's suggestion and original text (useful for _proofreading_ like actions).
+
 * `action` is the post action to handle the output of LLM. Possible values:
 
    - `show`: show the output in a box.
@@ -234,31 +243,34 @@ Add a shortcut of the `WritingTools.exe` to the Windows Start-Up folder.
 
 ## 👨‍💻 To compile the application yourself:
 
-Precondition: Build `libchatllm` or get `libchatllm.dll` & `ggml.dll` from releases;
+Precondition: Build `libchatllm` or get `*.dll` from releases;
 
 ### Delphi
 
 1. Install [Delphi Community Edition](https://www.embarcadero.com/products/delphi/starter/free-download/);
 1. Build this project (Target: Win64);
-1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _Win64/Debug_).
+1. Copy all `*.dll` files  to the output directory (such as _Win64/Debug_).
 
 ### Lazarus
 
 1. Install [Lazarus](https://www.lazarus-ide.org/) Win64;
 1. Install package [WebView4Delphi](https://github.com/salvadordf/WebView4Delphi) to Lazarus;
 1. Build this project (_LazWritingTools.lpi_);
-1. Copy `libchatllm.dll` & `ggml.dll` to the output directory (such as _lib/x86\_64-win64_).
+1. Copy all `*.dll` files to the output directory (such as _lib/x86\_64-win64_).
 
 ## 👏‍ Acknowledgements
 
 * This project is inspired by another [WritingTools](https://github.com/theJayTea/WritingTools).
-   Let's keep things simple, with Delphi.
+   Let's keep things simple, with Delphi and Lazarus.
 
 * [Super Object Toolkit](https://github.com/hgourvest/superobject) for JSON manipulation.
 
-* [Markdown Processor](https://github.com/grahamegrieve/delphi-markdown) for Markdown rendering.
-
 * [Prism](https://prismjs.com) for code highlighting.
+
+* [Marked](https://github.com/markedjs/marked) for Markdown rendering.
+
+* [MathJax](https://www.mathjax.org/) for math rendering.
+
 
 ## 📄 License
 
