@@ -1,6 +1,6 @@
 # Writing Tools
 
-https://github.com/user-attachments/assets/e0a798a1-4482-45b0-afba-f9b512d3aa5e
+https://github.com/user-attachments/assets/00c3782f-a56d-4117-9957-26a192b64367
 
 
 ## 🚀 What is it?
