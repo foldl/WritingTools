@@ -15,7 +15,8 @@ uses
   Vcl.Themes,
   Vcl.Styles,
   superobject in 'superobject.pas',
-  UnitTools in 'UnitTools.pas';
+  UnitTools in 'UnitTools.pas',
+  UnitUnifiedLLM in 'UnitUnifiedLLM.pas';
 
 {$R *.res}
 

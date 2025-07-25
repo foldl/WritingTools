@@ -1,6 +1,6 @@
 unit UnitUnifiedLLM;
 
-{$mode ObjFPC}{$H+}
+{$ifdef fpc}{$mode delphi}{$endif}
 
 interface
 
@@ -19,7 +19,12 @@ type
 implementation
 
 uses
-  fphttpclient, opensslsockets;
+{$if defined(fpc)}
+  fphttpclient, opensslsockets
+{$elseif defined(dcc)}
+  System.Net.HttpClient, System.SyncObjs, System.Threading
+{$endif}
+;
 
 type
   TChatMessage = record
@@ -31,9 +36,14 @@ type
 
   TOpenAILLM = class(TBaseChatLLM)
   private
+{$if defined(fpc)}
     FCS: TRTLCriticalSection;
     FHttp: TFPHTTPClient;
-    FChunk: string;
+{$elseif defined(dcc)}
+    FCS: TCriticalSection;
+    FHttp: THTTPClient;
+    FAbort: Boolean;
+{$endif}
     FResponseStream: TMemoryStream;
     FReadPos: Int64;
     FAPIPath: string;
@@ -61,7 +71,12 @@ type
     procedure SetAIPrefix(Value: string); override;
   private
     procedure _Run;
+    procedure HandleHttpData(Sender : TObject; Flush: Boolean);
+{$if defined(fpc)}
     procedure HttpData(Sender : TObject; Const ContentLength, CurrentPos : Int64);
+{$elseif defined(dcc)}
+    procedure HttpData(const Sender: TObject; ContentLength, CurrentPos: Int64; var AAbort: Boolean);
+{$endif}
     procedure SyncedCallDone;
     procedure SyncedReportData;
     procedure NotifyData(AData: string);
@@ -76,6 +91,29 @@ begin
   Result := 0;
 end;
 
+{$if defined(dcc)}
+procedure InitCriticalSection(var CS: TCriticalSection);
+begin
+  CS := TCriticalSection.Create;
+end;
+
+procedure DoneCriticalSection(var CS: TCriticalSection);
+begin
+  FreeAndNil(CS);
+end;
+
+procedure EnterCriticalSection(CS: TCriticalSection);
+begin
+  CS.Enter;
+end;
+
+procedure LeaveCriticalSection(CS: TCriticalSection);
+begin
+  CS.Leave;
+end;
+
+{$endif}
+
 { TOpenAILLM }
 
 procedure TOpenAILLM.SetBusy(AValue: Boolean);
@@ -85,27 +123,29 @@ begin
 end;
 
 constructor TOpenAILLM.Create(APIPath, APIKey, ModelName: string);
-var
-  I: Integer;
-  A: TSuperArray;
-  R: ISuperObject;
-  O: ISuperObject;
-  M: TChatMessage;
 begin
   inherited Create;
   InitCriticalSection(FCS);
 
+{$if defined(fpc)}
   FHTTP := TFPHTTPClient.Create(nil);
+  FHTTP.AddHeader('Content-Type', 'application/json; charset=UTF-8');
+  FHTTP.AddHeader('Authorization', 'Bearer ' + APIKey);
+  FHTTP.AddHeader('Accept', 'text/event-stream');
+  FHTTP.OnDataReceived := HttpData;
+{$elseif defined(dcc)}
+  FHTTP := THTTPClient.Create;
+  FHTTP.CustHeaders.Add('Content-Type', 'application/json; charset=UTF-8');
+  FHTTP.CustHeaders.Add('Authorization', 'Bearer ' + APIKey);
+  FHTTP.CustHeaders.Add('Accept', 'text/event-stream');
+  FHTTP.OnReceiveData := HttpData;
+{$endif}
+
   FData := TStringList.Create;
   FAPIPath := APIPath;
   FReadPos := 0;
   FStop := '';
   FModelName := ModelName;
-
-  FHTTP.AddHeader('Content-Type', 'application/json; charset=UTF-8');
-  FHTTP.AddHeader('Authorization', 'Bearer ' + APIKey);
-  FHTTP.AddHeader('Accept', 'text/event-stream');
-  FHTTP.OnDataReceived := @HttpData;
 
   FResponseStream := TMemoryStream.Create;
 end;
@@ -168,21 +208,39 @@ begin
   if FAIPrefix <> '' then
     OnChunk(Self, FAIPrefix);
 
+{$if defined(fpc)}
   FHTTP.Terminate;
-  FResponseStream.Clear;
-  FHTTP.RequestBody := TRawByteStringStream.Create(BuildRequest);
+{$elseif defined(dcc)}
+  FAbort := False;
+{$endif}
 
+  FResponseStream.Clear;
+
+{$if defined(fpc)}
   if BeginThread(@_RunThreadedTask, Self) = 0 then
   begin
     SetBusy(False);
     Result := -1;
   end;
+{$elseif defined(dcc)}
+  var T := TTask.Create(procedure
+    begin
+      _RunThreadedTask(Self);
+    end);
+  T.Start;
+  
+{$endif}
+
 end;
 
 procedure TOpenAILLM.AbortGeneration;
 begin
   EnterCriticalSection(FCS);
+{$if defined(fpc)}
   if Assigned(FHttp) then FHttp.Terminate;
+{$elseif defined(dcc)}
+  FAbort := True;
+{$endif}
   LeaveCriticalSection(FCS);
 end;
 
@@ -196,42 +254,19 @@ begin
   Result := FThoughtAcc;
 end;
 
-procedure TOpenAILLM.SetAIPrefix(Value: string);
-begin
-  FAIPrefix := Value;
-end;
-
-procedure TOpenAILLM._Run;
-var
-  HTTP: TFPHTTPClient;
-begin
-  HTTP := FHTTP;
-
-  try
-    try
-      HTTP.Post(FAPIPath, FResponseStream);
-    except
-    end
-  finally
-    HTTP.RequestBody.Free;
-  end;
-
-  HttpData(Self, -1, 0);
-
-  TThread.Synchronize(nil, @SyncedCallDone);
-end;
-
-procedure TOpenAILLM.HttpData(Sender: TObject; const ContentLength,
-  CurrentPos: Int64);
+procedure TOpenAILLM.HandleHttpData(Sender: TObject; Flush: Boolean);
 var
   T: Int64;
-  S: AnsiString = '';
-  P: PChar;
-  _Start: Int64 = -1;
-  Ended: Int64 = -1;
-  Dirty: Boolean = False;
+  S: AnsiString;
+  P: PAnsiChar;
+  _Start: Int64;
+  Ended: Int64;
+  Dirty: Boolean;
 begin
-  P := PChar(FResponseStream.Memory);
+  S := '';
+  Dirty  := False;
+
+  P := PAnsiChar(FResponseStream.Memory);
 
   while True do
   begin
@@ -262,12 +297,12 @@ begin
       Inc(T);
     end;
 
-    if (ContentLength < 0) and (Ended < 0) then
+    if Flush and (Ended < 0) then
     begin
       Ended := FResponseStream.Size;
     end;
 
-    if Ended < 0 then Break;
+    if Ended <= _Start then Break;
 
     FReadPos := Ended;
     Dirty := True;
@@ -276,13 +311,67 @@ begin
     Move(P[_Start], S[1], Ended - _Start);
 
     EnterCriticalSection(FCS);
+{$if defined(fpc)}
     FData.Add(S);
+{$elseif defined(dcc)}
+    FData.Add(UTF8ToWideString(S));
+{$endif}
     LeaveCriticalSection(FCS);
   end;
 
   if Dirty then
-    TThread.Synchronize(nil, @SyncedReportData);
+    TThread.Synchronize(nil, SyncedReportData);
 end;
+
+procedure TOpenAILLM.SetAIPrefix(Value: string);
+begin
+  FAIPrefix := Value;
+end;
+
+procedure TOpenAILLM._Run;
+{$if defined(dcc)}
+var
+  Request: TStringStream;
+{$endif}
+begin
+  try
+    try
+{$if defined(fpc)}
+      FHTTP.RequestBody := TRawByteStringStream.Create(BuildRequest);
+      FHTTP.Post(FAPIPath, FResponseStream);
+{$elseif defined(dcc)}
+      Request := TStringStream.Create(BuildRequest);
+      FHTTP.Post(FAPIPath, Request, FResponseStream);
+{$endif}
+    except
+    end
+  finally
+{$if defined(dcc)}
+    Request.Free;
+{$endif}
+  end;
+
+  HandleHttpData(Self, True);
+
+  TThread.Synchronize(nil, SyncedCallDone);
+end;
+
+{$if defined(fpc)}
+procedure TOpenAILLM.HttpData(Sender : TObject; Const ContentLength, CurrentPos : Int64);
+begin
+  HandleHttpData(Sender, False);
+end;
+{$elseif defined(dcc)}
+procedure TOpenAILLM.HttpData(const Sender: TObject; ContentLength, CurrentPos: Int64; var AAbort: Boolean);
+begin
+  if FAbort then
+  begin
+    AAbort := FAbort;
+    Exit;
+  end;
+  HandleHttpData(Sender, False);
+end;
+{$endif}
 
 procedure TOpenAILLM.SyncedCallDone;
 begin

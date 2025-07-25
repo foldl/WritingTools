@@ -144,6 +144,7 @@
         <DCCReference Include="libchatllm.pas"/>
         <DCCReference Include="superobject.pas"/>
         <DCCReference Include="UnitTools.pas"/>
+        <DCCReference Include="UnitUnifiedLLM.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

@@ -22,8 +22,6 @@ Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [De
 >
 >_Privacy, absolute, a promise kept,<br/>No data to share, no worries to find.<br/> Free and open-source, a pure delight,<br/> Purely native, no bloat, no pain._<br/>
 >
->_In the world of AI, a secret lies,<br/>Where LLMs run on your very site._<br/>
->
 >_With OpenAI's API online, <br/>A trade-off made for access refined.<br/>In the world of AI, a secret lies,<br/> Where LLMs run on your very site._<br/>
 
 
