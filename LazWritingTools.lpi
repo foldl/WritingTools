@@ -64,6 +64,10 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="LibChatLLM"/>
       </Unit>
+      <Unit>
+        <Filename Value="UnitUnifiedLLM.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

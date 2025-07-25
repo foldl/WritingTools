@@ -10,7 +10,8 @@ uses
   athreads,
   {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, LazUnitMain, UnitTools, superobject, LibChatLLM, lazcontrols;
+  Forms, LazUnitMain, UnitTools, superobject, LibChatLLM, UnitUnifiedLLM,
+  lazcontrols;
 
 {$R *.res}
 

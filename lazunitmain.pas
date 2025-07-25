@@ -435,9 +435,9 @@ procedure TMainForm.FlushAIChunks;
 begin
   if FChunkAcc = '' then Exit;
   if FIsThought then
-    FBrowserUpdater.CallJSFun('ai_append_chunk', FChunkAcc)
+    FBrowserUpdater.CallJSFun('ai_append_thought_chunk', FChunkAcc)
   else
-    FBrowserUpdater.CallJSFun('ai_append_thought_chunk', FChunkAcc);
+    FBrowserUpdater.CallJSFun('ai_append_chunk', FChunkAcc);
   FChunkAcc := '';
 end;
 
@@ -520,12 +520,14 @@ end;
 
 procedure TMainForm.WebAppDiff(A, B: string);
 begin
+  FChunkAcc := '';
   FBrowserUpdater.CallJSFun('app_diff', A, B);
 end;
 
 procedure TMainForm.AppendAIChunk(L: string);
 begin
   if FIsThought then FlushAIChunks;
+  FIsThought := False;
   FChunkAcc := FChunkAcc + L;
   if FBrowserUpdater.Busy then
   begin
@@ -539,6 +541,7 @@ end;
 procedure TMainForm.AppendAIThoughChunk(L: string);
 begin
   if not FIsThought then FlushAIChunks;
+  FIsThought := True;
   FChunkAcc := FChunkAcc + L;
   if FBrowserUpdater.Busy then
   begin

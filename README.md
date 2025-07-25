@@ -14,23 +14,26 @@ Based on [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp), and built with [De
 
 ### 🌟 Why Choose Writing Tools?
 
->_In the realm of AI, a secret lies,</br> Where LLMs run on your very site.</br> System-wide, without a hitch,</br> Instantly in any app you might pick._</br>
+>_In the realm of AI, a secret lies,<br/> Where LLMs run on your very site.<br/> System-wide, without a hitch,<br/> Instantly in any app you might pick._<br/>
 >
->_Clipboard untouched, a pure delight,</br> No need to worry, no data to steal.</br> Purely native, no Python, no Java, no JS,</br> Bloat-free, CPU usage, it's a joke._</br>
+>_Clipboard untouched, a pure delight,<br/> No need to worry, no data to steal.<br/> Purely native, no Python, no Java, no JS,<br/> Bloat-free, CPU usage, it's a joke._<br/>
 >
->_Chat mode, a quick query's delight,</br> No text selected, a chat mode you'll find.</br> For quick queries, assistance at your command,</br> All commands customizable, a true delight._</br>
+>_Chat mode, a quick query's delight,<br/> No text selected, a chat mode you'll find.<br/> For quick queries, assistance at your command,<br/> All commands customizable, a true delight._<br/>
 >
->_Privacy, absolute, a promise kept,</br>No data to share, no worries to find.</br> Free and open-source, a pure delight,</br> Purely native, no bloat, no pain._</br>
+>_Privacy, absolute, a promise kept,<br/>No data to share, no worries to find.<br/> Free and open-source, a pure delight,<br/> Purely native, no bloat, no pain._<br/>
 >
->_In the world of AI, a secret lies,</br>Where LLMs run on your very site._</br>
+>_In the world of AI, a secret lies,<br/>Where LLMs run on your very site._<br/>
+>
+>_With OpenAI's API online, <br/>A trade-off made for access refined.<br/>In the world of AI, a secret lies,<br/> Where LLMs run on your very site._<br/>
 
 
 - **_Absolute_ privacy**: Based on ChatLLM.cpp. LLMs run on your machine.
-- **System-wide Functionality**: Works instantly in **any application** where you can select text. **Does not overwrite your clipboard**.
-- **Completely free and Open-source**: Purely native. Bloat-free & uses pretty much **0% of your CPU**.
+- **System-wide functionality**: Works instantly in **any application** where you can select text. **Does not overwrite your clipboard**.
+- **Completely free and open-source**: Purely native. Bloat-free & uses pretty much **0% of your CPU**.
 - **Chat Mode**: Seamlessly switching between context processing mode and chat mode.
 - **Customization**: All commands are fully customizable.
-- **Markdown/Math Rendering**: Beautiful and elegant.
+- **Markdown/Math rendering**: Beautiful and elegant.
+- **Trade-off on privacy**: Sometimes one needs to access an online even powerful models, so OpenAI compatible services are also supported.
 
 ## ✨ Features
 
@@ -51,7 +54,7 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
 
 1. Extract it anywhere you want.
 
-1. Download a quantized model for [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp). Some small models:
+1. To use local LLMs served by [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp) for complete privacy, download a quantized model. Some small models:
 
    |Model name        | Size (GB)      |   Link  |
    |:----------------:|---------------:|:--------------|
@@ -61,6 +64,8 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
 1. Configure your profile.
 
    Copy `profile.json.in` to `profile.json`. Fill in the path of the quantized model file and other options (see [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp)):
+
+   To setup an local LLM, just define a list of options required by [ChatLLM.cpp](https://github.com/foldl/chatllm.cpp):
 
    ```js
    {
@@ -74,6 +79,32 @@ Invoke Writing Tools with no text selected to enter quick chat mode.
          ]
       },
       //...
+   }
+   ```
+
+   To setup an OpenAI compatible server, just define a simple dictionary:
+
+   ```js
+   {
+      //...
+      "chatllm": {
+         "default": {
+              "url": "api for chat completion",
+              "key": "....",
+              "model": "..."
+         }
+      },
+      //...
+   }
+   ```
+
+   Take DeepSeek as an example:
+
+   ```js
+   {
+      "url": "https://api.deepseek.com/chat/completions",
+      "key": "sk-.....",
+      "model": "deepseek-chat"
    }
    ```
 
@@ -107,8 +138,8 @@ Multiple LLMs can be defined and loaded simultaneously. Each is defined as an en
 {
    //...
    "chatllm": {
-      "default": [...],
-      "another_one": [...]
+      "default": ...,
+      "another_one": ...
    },
    //...
 }
@@ -202,10 +233,10 @@ Some vibrant gradients:
 
 |These|vibrant|gradients|exhibit|a|very|sweet|appearance|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|2c91fe, 5f21df</br><img src="media/5f21df_2c91fe.png" width="64px"></img>|2aa4fe, 2497e7</br><img src="media/2497e7_2aa4fe.png" width="64px"></img>|f0cb79, c79f35</br><img src="media/c79f35_f0cb79.png" width="64px"></img>|cc9621, 6d16be</br><img src="media/6d16be_cc9621.png" width="64px"></img>|cfcb3d, 3dc7de</br><img src="media/3dc7de_cfcb3d.png" width="64px"></img>|b979f0, 7a2be0</br><img src="media/7a2be0_b979f0.png" width="64px"></img>|edcb77, c8730d</br><img src="media/c8730d_edcb77.png" width="64px"></img>|cbc445, 6681e3</br><img src="media/6681e3_cbc445.png" width="64px"></img>|
-|35d2fa, b6ea9c</br><img src="media/b6ea9c_35d2fa.png" width="64px"></img>|483af3, 7010a4</br><img src="media/7010a4_483af3.png" width="64px"></img>|cc9211, ba16e0</br><img src="media/ba16e0_cc9211.png" width="64px"></img>|a1450a, c3a822</br><img src="media/c3a822_a1450a.png" width="64px"></img>|08b3d3, 23eef9</br><img src="media/23eef9_08b3d3.png" width="64px"></img>|94c37e, c3b72f</br><img src="media/c3b72f_94c37e.png" width="64px"></img>|5b2af0, eaac65</br><img src="media/eaac65_5b2af0.png" width="64px"></img>|651ed8, 375af7</br><img src="media/375af7_651ed8.png" width="64px"></img>|
-|4919e3, ead0ab</br><img src="media/ead0ab_4919e3.png" width="64px"></img>|f3b971, ba23ee</br><img src="media/ba23ee_f3b971.png" width="64px"></img>|35b1f7, 203ffa</br><img src="media/203ffa_35b1f7.png" width="64px"></img>|daf871, cea8f0</br><img src="media/cea8f0_daf871.png" width="64px"></img>|5dc3ee, da999b</br><img src="media/da999b_5dc3ee.png" width="64px"></img>|820ead, b453ea</br><img src="media/b453ea_820ead.png" width="64px"></img>|0816ac, 403eee</br><img src="media/403eee_0816ac.png" width="64px"></img>|82b5fe, 7526ff</br><img src="media/7526ff_82b5fe.png" width="64px"></img>|
-|833d1f, c29300</br><img src="media/c29300_833d1f.png" width="64px"></img>|ab9c38, 4abcc2</br><img src="media/4abcc2_ab9c38.png" width="64px"></img>|eea82d, 3adbbb</br><img src="media/3adbbb_eea82d.png" width="64px"></img>|8e4b5a, 6d12f1</br><img src="media/6d12f1_8e4b5a.png" width="64px"></img>|3ec9e4, 71d3a5</br><img src="media/71d3a5_3ec9e4.png" width="64px"></img>|bb765b, 2c60f0</br><img src="media/2c60f0_bb765b.png" width="64px"></img>|d73d96, bb661e</br><img src="media/bb661e_d73d96.png" width="64px"></img>|462a95, c25c21</br><img src="media/c25c21_462a95.png" width="64px"></img>|
+|2c91fe, 5f21df<br/><img src="media/5f21df_2c91fe.png" width="64px"></img>|2aa4fe, 2497e7<br/><img src="media/2497e7_2aa4fe.png" width="64px"></img>|f0cb79, c79f35<br/><img src="media/c79f35_f0cb79.png" width="64px"></img>|cc9621, 6d16be<br/><img src="media/6d16be_cc9621.png" width="64px"></img>|cfcb3d, 3dc7de<br/><img src="media/3dc7de_cfcb3d.png" width="64px"></img>|b979f0, 7a2be0<br/><img src="media/7a2be0_b979f0.png" width="64px"></img>|edcb77, c8730d<br/><img src="media/c8730d_edcb77.png" width="64px"></img>|cbc445, 6681e3<br/><img src="media/6681e3_cbc445.png" width="64px"></img>|
+|35d2fa, b6ea9c<br/><img src="media/b6ea9c_35d2fa.png" width="64px"></img>|483af3, 7010a4<br/><img src="media/7010a4_483af3.png" width="64px"></img>|cc9211, ba16e0<br/><img src="media/ba16e0_cc9211.png" width="64px"></img>|a1450a, c3a822<br/><img src="media/c3a822_a1450a.png" width="64px"></img>|08b3d3, 23eef9<br/><img src="media/23eef9_08b3d3.png" width="64px"></img>|94c37e, c3b72f<br/><img src="media/c3b72f_94c37e.png" width="64px"></img>|5b2af0, eaac65<br/><img src="media/eaac65_5b2af0.png" width="64px"></img>|651ed8, 375af7<br/><img src="media/375af7_651ed8.png" width="64px"></img>|
+|4919e3, ead0ab<br/><img src="media/ead0ab_4919e3.png" width="64px"></img>|f3b971, ba23ee<br/><img src="media/ba23ee_f3b971.png" width="64px"></img>|35b1f7, 203ffa<br/><img src="media/203ffa_35b1f7.png" width="64px"></img>|daf871, cea8f0<br/><img src="media/cea8f0_daf871.png" width="64px"></img>|5dc3ee, da999b<br/><img src="media/da999b_5dc3ee.png" width="64px"></img>|820ead, b453ea<br/><img src="media/b453ea_820ead.png" width="64px"></img>|0816ac, 403eee<br/><img src="media/403eee_0816ac.png" width="64px"></img>|82b5fe, 7526ff<br/><img src="media/7526ff_82b5fe.png" width="64px"></img>|
+|833d1f, c29300<br/><img src="media/c29300_833d1f.png" width="64px"></img>|ab9c38, 4abcc2<br/><img src="media/4abcc2_ab9c38.png" width="64px"></img>|eea82d, 3adbbb<br/><img src="media/3adbbb_eea82d.png" width="64px"></img>|8e4b5a, 6d12f1<br/><img src="media/6d12f1_8e4b5a.png" width="64px"></img>|3ec9e4, 71d3a5<br/><img src="media/71d3a5_3ec9e4.png" width="64px"></img>|bb765b, 2c60f0<br/><img src="media/2c60f0_bb765b.png" width="64px"></img>|d73d96, bb661e<br/><img src="media/bb661e_d73d96.png" width="64px"></img>|462a95, c25c21<br/><img src="media/c25c21_462a95.png" width="64px"></img>|
 
 ### Troubleshooting (Fine Tuning)
 

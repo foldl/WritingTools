@@ -283,13 +283,49 @@ type
   TLLMTextEmbeddingResult = procedure (Sender: TObject; AState: Integer; AEmbedding: array of Single) of object;
   TLLMQARankingResult = procedure (Sender: TObject; AState: Integer; ARanking: Single) of object;
 
-  { TChatLLM }
+  { TBaseChatLLM }
 
-  TChatLLM = class
-  private
-    FObj: PChatLLMObj;
+  TBaseChatLLM = class
+  protected
+    FAutoAbortSufffix: string;
+    FOnChunk: TLLMPrintEvent;
+    FOnStateChanged: TLLMStateChangedEvent;
     FOnThoughtChunk: TLLMPrintEvent;
     FOnThoughtEnded: TNotifyEvent;
+    procedure SetAIPrefix(AValue: string); virtual;
+    procedure SetOnChunk(AValue: TLLMPrintEvent); virtual;
+    procedure SetOnStateChanged(AValue: TLLMStateChangedEvent); virtual;
+  public
+    function Start(): Integer; virtual;
+
+    procedure Restart; overload; virtual; abstract;
+    procedure Restart(ASysPrompt: string); overload; virtual; abstract;
+
+    function Chat(const AInput: string): Integer; virtual; abstract;
+    procedure AbortGeneration; virtual; abstract;
+
+  protected
+    function GetOutputAcc: string; virtual; abstract;
+    function GetThoughtAcc: string; virtual; abstract;
+
+  public
+    property OnChunk: TLLMPrintEvent read FOnChunk write SetOnChunk;
+    property OnThoughtChunk: TLLMPrintEvent read FOnThoughtChunk write FOnThoughtChunk;
+    property OnThoughtEnded: TNotifyEvent read FOnThoughtEnded write FOnThoughtEnded;
+    property OnStateChanged: TLLMStateChangedEvent read FOnStateChanged write SetOnStateChanged;
+
+    property AIPrefix: string write SetAIPrefix;
+    property AutoAbortSufffix: string read FAutoAbortSufffix write FAutoAbortSufffix;
+
+    property OutputAcc: string read GetOutputAcc;
+    property ThoughtAcc: string read GetThoughtAcc;
+  end;
+
+  { TChatLLM }
+
+  TChatLLM = class(TBaseChatLLM)
+  private
+    FObj: PChatLLMObj;
     FOutputAcc: string;
     FThoughtAcc: string;
     FReferences: TStringList;
@@ -299,21 +335,17 @@ type
     FOnPrintRewrittenQuery: TLLMPrintEvent;
     FOnPrintToolCalling: TLLMPrintEvent;
     FOnPrintError: TLLMPrintEvent;
-    FOnChunk: TLLMPrintEvent;
     FOnPrintMeta: TLLMPrintEvent;
     FOnPrintReference: TLLMPrintEvent;
     FOnPrintHistoryUser: TLLMPrintEvent;
     FOnGenerationEnded: TNotifyEvent;
     FBusy: Integer;
-    FOnStateChanged: TLLMStateChangedEvent;
     FOnTextEmbeddingResult: TLLMTextEmbeddingResult;
     FOnQARankingResult: TLLMQARankingResult;
-    FAutoAbortSufffix: string;
     FCallingMode: Boolean;
     FCallResult: TLLMPrintEvent;
     FModelInfo: string;
     function GetBusy: Boolean;
-    procedure SetOnChunk(const Value: TLLMPrintEvent);
     procedure SetOnPrintError(const Value: TLLMPrintEvent);
     procedure SetOnPrintHistoryAI(const Value: TLLMPrintEvent);
     procedure SetOnPrintHistoryUser(const Value: TLLMPrintEvent);
@@ -323,7 +355,6 @@ type
     procedure SetOnPrintToolCalling(const Value: TLLMPrintEvent);
     procedure SetGenMaxTokens(const Value: Integer);
     procedure SetOnGenerationEnded(const Value: TNotifyEvent);
-    procedure SetOnStateChanged(const Value: TLLMStateChangedEvent);
     procedure SetBusy(AValue: Boolean);
     procedure SetOnQARankingResult(const Value: TLLMQARankingResult);
     procedure SetOnTextEmbeddingResult(const Value: TLLMTextEmbeddingResult);
@@ -332,30 +363,31 @@ type
     procedure CallChatEnd(AState: Integer);
     procedure TextEmbeddingEnd(AState: Integer);
     procedure QARankingEnd(AState: Integer);
-    procedure SetAIPrefix(const Value: string);
+    procedure SetAIPrefix(Value: string); override;
 
   protected
     FThinking: Boolean;
-    procedure InternalChunk(S: string);
   protected
     procedure DoBeforeChat; virtual;
     procedure HandlePrint(APrintType: Integer; S: string); virtual;
     procedure HandleEnd; virtual;
+    function GetOutputAcc: string; override;
+    function GetThoughtAcc: string; override;
   public
     constructor Create;
     destructor Destroy; override;
 
-    function Start(): Integer;
-    procedure Restart; overload;
-    procedure Restart(ASysPrompt: string); overload;
+    function Start(): Integer; override;
+    procedure Restart; overload; override;
+    procedure Restart(ASysPrompt: string); overload; override;
     procedure AddParam(AParams: array of string); overload;
     procedure AddParam(AParams: TStrings); overload;
     procedure AddParam(AParam: string); overload;
 
-    function Chat(const AInput: string): Integer; overload;
+    function Chat(const AInput: string): Integer; override;
     function ToolInput(const AInput: string): Integer;
     function ToolCompletion(const AInput: string): Integer;
-    procedure AbortGeneration;
+    procedure AbortGeneration; override;
 
     function CallChat(const AInput: string; OnResult: TLLMPrintEvent): Integer;
 
@@ -366,9 +398,6 @@ type
     property GenMaxTokens: Integer write SetGenMaxTokens;
     property Busy: Boolean read GetBusy;
   public
-    property OnChunk: TLLMPrintEvent read FOnChunk write SetOnChunk;
-    property OnThoughtChunk: TLLMPrintEvent read FOnThoughtChunk write FOnThoughtChunk;
-    property OnThoughtEnded: TNotifyEvent read FOnThoughtEnded write FOnThoughtEnded;
     property OnPrintMeta: TLLMPrintEvent read FOnPrintMeta write SetOnPrintMeta;
     property OnPrintError: TLLMPrintEvent read FOnPrintError write SetOnPrintError;
     property OnPrintReference: TLLMPrintEvent read FOnPrintReference write SetOnPrintReference;
@@ -381,14 +410,7 @@ type
     property OnTextEmbeddingResult: TLLMTextEmbeddingResult read FOnTextEmbeddingResult write SetOnTextEmbeddingResult;
     property OnQARankingResult: TLLMQARankingResult read FOnQARankingResult write SetOnQARankingResult;
 
-    property OnStateChanged: TLLMStateChangedEvent read FOnStateChanged write SetOnStateChanged;
-
-    property OutputAcc: string read FOutputAcc;
-    property ThoughtAcc: string read FThoughtAcc;
     property ModelInfo: string read FModelInfo;
-
-    property AIPrefix: string write SetAIPrefix;
-    property AutoAbortSufffix: string read FAutoAbortSufffix write FAutoAbortSufffix;
 
     property References: TStringList read FReferences;
   end;
@@ -641,6 +663,28 @@ begin
   Free;
 end;
 
+{ TBaseChatLLM }
+
+procedure TBaseChatLLM.SetOnChunk(AValue: TLLMPrintEvent);
+begin
+  FOnChunk := AValue;
+end;
+
+procedure TBaseChatLLM.SetAIPrefix(AValue: string);
+begin
+
+end;
+
+procedure TBaseChatLLM.SetOnStateChanged(AValue: TLLMStateChangedEvent);
+begin
+  FOnStateChanged := AValue;
+end;
+
+function TBaseChatLLM.Start(): Integer;
+begin
+  Result := 0;
+end;
+
 { TChatLLM }
 
 procedure TChatLLM.AbortGeneration;
@@ -714,6 +758,16 @@ procedure TChatLLM.HandleEnd;
 begin
   if Assigned(FOnGenerationEnded) then
     FOnGenerationEnded(Self);
+end;
+
+function TChatLLM.GetOutputAcc: string;
+begin
+  Result := FOutputAcc;
+end;
+
+function TChatLLM.GetThoughtAcc: string;
+begin
+  Result := FThoughtAcc;
 end;
 
 procedure TChatLLM.HandlePrint(APrintType: Integer; S: string);
@@ -810,14 +864,9 @@ begin
   ChatLLMRestart(FObj, nil);
 end;
 
-procedure TChatLLM.SetAIPrefix(const Value: string);
+procedure TChatLLM.SetAIPrefix(Value: string);
 begin
   ChatLLMSetAIPrefix(FObj, PAnsiChar(UTF8Encode(Value)));
-end;
-
-procedure TChatLLM.InternalChunk(S: string);
-begin
-
 end;
 
 procedure TChatLLM.DoBeforeChat;
@@ -847,11 +896,6 @@ end;
 procedure TChatLLM.SetGenMaxTokens(const Value: Integer);
 begin
   ChatLLMSetGenMaxTokens(FObj, Value);
-end;
-
-procedure TChatLLM.SetOnChunk(const Value: TLLMPrintEvent);
-begin
-  FOnChunk := Value;
 end;
 
 function TChatLLM.GetBusy: Boolean;
@@ -902,11 +946,6 @@ end;
 procedure TChatLLM.SetOnQARankingResult(const Value: TLLMQARankingResult);
 begin
   FOnQARankingResult := Value;
-end;
-
-procedure TChatLLM.SetOnStateChanged(const Value: TLLMStateChangedEvent);
-begin
-  FOnStateChanged := Value;
 end;
 
 procedure TChatLLM.SetOnTextEmbeddingResult(

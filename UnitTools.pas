@@ -7,7 +7,7 @@ interface
 uses
   Types, Classes, Graphics, SysUtils, Windows, Dialogs, Forms, ExtCtrls, StdCtrls,
   Clipbrd, Controls,
-  superobject, LibChatLLM,
+  superobject, LibChatLLM, UnitUnifiedLLM,
 {$if defined(dcc)}
   System.Generics.Collections, System.IOUtils, System.UITypes,
   System.NetEncoding, System.Threading
@@ -93,17 +93,6 @@ type
     Height: Integer;
   end;
 
-  TLLMContext = class
-  public
-    Params: TStringList;
-    LLM: TChatLLM;
-    Status: Integer;
-  public
-    constructor Create;
-    function Load: Integer;
-    destructor Destroy; override;
-  end;
-
   { TWritingProfile }
 
   TWritingProfile = class
@@ -113,12 +102,12 @@ type
     FActions: TObjectList<TWritingAction>;
     FHotkeyConfig: THotkeyConfig;
 
-    FLLMs: TDictionary<string, TLLMContext>;
+    FLLMs: TDictionary<string, TBaseChatLLM>;
     FTitle: string;
 
     procedure Save;
     function GetAction(Index: Integer): TWritingAction;
-    function GetLLM(Action: TWritingAction): TChatLLM;
+    function GetLLM(Action: TWritingAction): TBaseChatLLM;
     function GetActionNumber: Integer;
   public
     UIConfig: TUIConfig;
@@ -137,7 +126,7 @@ type
     property HotkeyConfig: THotkeyConfig read FHotkeyConfig;
     property ActionNumber: Integer read GetActionNumber;
     property Action[Index: Integer]: TWritingAction read GetAction;
-    property LLM[Action: TWritingAction]: TChatLLM read GetLLM;
+    property LLM[Action: TWritingAction]: TBaseChatLLM read GetLLM;
 
   end;
 
@@ -163,7 +152,7 @@ type
     FActiveCardIndex: Integer;
     FContext: string;
     FCurAction: TWritingAction;
-    FCurLLM: TChatLLM;
+    FCurLLM: TBaseChatLLM;
     FClipboardBackup: string;
     FChatMode: Boolean;
     FButtonRedo: TButton;
@@ -438,7 +427,7 @@ var
   S: TSuperAvlEntry;
   I: Integer;
   A: TSuperArray;
-  Ctx: TLLMContext;
+  Ctx: TBaseChatLLM;
 
   function ParseHexColorDef(S: string; Def: TColor): TColor;
   var
@@ -451,7 +440,7 @@ var
 begin
   FFileName := AFileName;
   FActions := TObjectList<TWritingAction>.Create;
-  FLLMs := TDictionary<string, TLLMContext>.Create;
+  FLLMs := TDictionary<string, TBaseChatLLM>.Create;
   FHotKey := TOSHotkey.Create(AHandle);
 
   O := ParseUTF8JsonFile(FFileName);
@@ -464,10 +453,8 @@ begin
   LLMs := O.O['chatllm'].AsObject;
   for S in LLMs do
   begin
-    Ctx := TLLMContext.Create;
-    A := S.Value.AsArray;
-    for I := 0 to A.Length - 1 do
-       Ctx.Params.Add(string(A.S[I]));
+    Ctx := TLLMFactory.Create(S.Value);
+    if not Assigned(Ctx) then Continue;
 
     FLLMs.Add(string(S.Name), Ctx);
   end;
@@ -518,7 +505,7 @@ begin
   Result := FActions.Count;
 end;
 
-function TWritingProfile.GetLLM(Action: TWritingAction): TChatLLM;
+function TWritingProfile.GetLLM(Action: TWritingAction): TBaseChatLLM;
 const
   DEF_LLM = 'default';
 var
@@ -528,23 +515,26 @@ begin
   if not Assigned(Action) then Exit;
 
   N := Action.LLMName;
-  if FLLMs.ContainsKey(N) then Result := FLLMs[N].LLM;
-  if FLLMs.ContainsKey(DEF_LLM) then Result := FLLMs[DEF_LLM].LLM;
+  if FLLMs.ContainsKey(N) then Result := FLLMs[N];
+  if FLLMs.ContainsKey(DEF_LLM) then Result := FLLMs[DEF_LLM];
 end;
 
 procedure TWritingProfile.LoadLLM(OnLLMPrint: TLLMPrintEvent;
   OnLLMThought: TLLMPrintEvent; OnLLMStateChanged: TLLMStateChangedEvent);
 var
-  LLM: TPair<string, TLLMContext>;
+  LLM: TPair<string, TBaseChatLLM>;
 begin
   for LLM in FLLMs do
   begin
-    LLM.Value.Load;
-    if LLM.Value.Status = 0 then
+    if LLM.Value.Start() = 0 then
     begin
-      LLM.Value.LLM.OnChunk := OnLLMPrint;
-      LLM.Value.LLM.OnThoughtChunk := OnLLMThought;
-      LLM.Value.LLM.OnStateChanged := OnLLMStateChanged;
+      LLM.Value.OnChunk := OnLLMPrint;
+      LLM.Value.OnThoughtChunk := OnLLMThought;
+      LLM.Value.OnStateChanged := OnLLMStateChanged;
+    end
+    else begin
+      MessageDlg(Format('Failed to load LLM', []), TMsgDlgType.mtError, [mbOK], -1);
+      Application.Terminate;
     end;
   end;
 end;
@@ -656,35 +646,6 @@ begin
   end;
 
   if E then Enabled := True;
-end;
-
-{ TLLMContext }
-
-constructor TLLMContext.Create;
-begin
-  Params := TStringList.Create;
-end;
-
-destructor TLLMContext.Destroy;
-begin
-  Params.Free;
-  LLM.Free;
-  inherited;
-end;
-
-function TLLMContext.Load: Integer;
-begin
-  Result := Status;
-  if Assigned(LLM) then Exit;
-
-  LLM := TChatLLM.Create;
-  LLM.AddParam(Params);
-  Status := LLM.Start;
-  if Status <> 0 then
-  begin
-    MessageDlg(Format('Failed to load LLM using params: %s', [Params.Text]), TMsgDlgType.mtError, [mbOK], -1);
-    Application.Terminate;
-  end;
 end;
 
 { TWritingTools }

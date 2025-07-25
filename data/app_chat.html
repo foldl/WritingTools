@@ -113,6 +113,7 @@
 
         <!-- MathJax Configuration & Script -->
         <script>
+            let mathJaxTags = ['\\(', '\\)', '\\[', '\\]'];
             window.MathJax = {
                 tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true },
                 svg: { fontCache: 'global' },
@@ -149,7 +150,12 @@
             }
 
             function render_main() {
-                render_markdown(g_md_src, ai_container);
+                var escaped = g_md_src;
+                // double escape for ajax
+                for (let tag of mathJaxTags) {
+                    escaped = escaped.replaceAll(tag, '\\' + tag);
+                }
+                render_markdown(escaped, ai_container);
                 Prism.highlightAllUnder(ai_container);
 
                 if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
@@ -308,12 +314,6 @@
                         add_diff_span_to(right, 'kept', part.value);
                     }
                 });
-
-                var fragment = document.createElement("div");
-                fragment.className = "diff_container";
-                fragment.innerText = other;
-
-                //chat_container.appendChild(fragment);
             }
         </script>
 
