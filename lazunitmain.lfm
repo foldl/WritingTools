@@ -3,6 +3,7 @@ object MainForm: TMainForm
   Height = 438
   Top = 141
   Width = 676
+  BorderIcons = [biSystemMenu]
   BorderWidth = 5
   Caption = 'Writing Tools'
   ChildSizing.VerticalSpacing = 5
