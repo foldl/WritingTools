@@ -290,7 +290,7 @@ begin
   finally
     F.Free;
   end;
-  Result := string(A);
+  Result := UTF8Decode(A);
 end;
 
 function ParseUTF8JsonFile(FN: string): ISuperObject;
@@ -298,11 +298,7 @@ var
   Content: string;
 begin
   Content := ReadFullUTF8TextFile(FN);
-{$ifdef dcc}
-  Result := TSuperObject.ParseString(PChar(Content), False);
-{$else}
-  Result := TSuperObject.ParseString(PWideChar(UnicodeString(Content)), False);
-{$endif}
+  Result := TSuperObject.ParseString(PWideChar(WideString(Content)), False);
 end;
 
 function SafeGetClipboard(var S: string; Retry: Integer): Boolean;
