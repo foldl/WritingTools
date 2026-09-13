@@ -1,3 +1,5 @@
+
+
 # Writing Tools
 
 https://github.com/user-attachments/assets/00c3782f-a56d-4117-9957-26a192b64367
@@ -299,6 +301,8 @@ Precondition: Build `libchatllm` or get `*.dll` from releases;
 * [Marked](https://github.com/markedjs/marked) for Markdown rendering.
 
 * [MathJax](https://www.mathjax.org/) for math rendering.
+
+* [Mermaid](https://mermaid.js.org/) for diagram rendering.
 
 
 ## 📄 License
